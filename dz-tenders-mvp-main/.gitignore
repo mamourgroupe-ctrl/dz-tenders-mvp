@@ -1,0 +1,19 @@
+# Environment variables (سري!)
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+
+# Output files
+tenders_results.json
+tenders_results.xlsx
+
+# IDE
+.vscode/
+.idea/
