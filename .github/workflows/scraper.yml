@@ -1,31 +1,22 @@
 name: DZ Tenders Scraper
-
 on:
   schedule:
-    # كل يوم في الساعة 6 صباحًا بتوقيت الجزائر (5 UTC)
     - cron: '0 5 * * *'
-  workflow_dispatch:  # للتشغيل اليدوي من GitHub
-
+  workflow_dispatch:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Python 3.12
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
+        run: pip install -r requirements.txt
       - name: Run scraper
         env:
-          TELEGRAM_BOT_TOKEN: ${{ 8835703293:AAG0qpNumTw-kh5VitaY8el9wRYv1qCT7R8 }}
-          TELEGRAM_CHAT_ID: ${{ 8812251287 }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python test_run.py
