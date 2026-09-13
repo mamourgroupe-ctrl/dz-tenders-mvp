@@ -22,3 +22,16 @@ tenders_results.xlsx
 
 .env.backup
 *.ps1
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# WhatsApp secrets
+whatsapp_config.json
