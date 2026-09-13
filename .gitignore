@@ -17,3 +17,5 @@ tenders_results.xlsx
 # IDE
 .vscode/
 .idea/
+.env.backup
+*.ps1
