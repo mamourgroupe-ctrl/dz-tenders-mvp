@@ -19,3 +19,6 @@ tenders_results.xlsx
 .idea/
 .env.backup
 *.ps1
+
+.env.backup
+*.ps1
