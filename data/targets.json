@@ -465,5 +465,151 @@
     "Ksar El Boukhari": "قصر البخاري",
     "Bou Saada": "بوسعادة",
     "El Abiodh Sidi Cheikh": "البيض سيدي الشيخ"
+  },
+  "government_agencies": {
+    "ministries": [
+      "وزارة الداخلية",
+      "وزارة الدفاع",
+      "وزارة المالية",
+      "وزارة الطاقة",
+      "وزارة الفلاحة",
+      "وزارة الري",
+      "وزارة الشغال العمومية",
+      "وزارة النقل",
+      "وزارة الصحة",
+      "وزارة التربية",
+      "وزارة التعليم العالي",
+      "وزارة السكن",
+      "وزارة الصناعة",
+      "وزارة التجارة",
+      "وزارة العمل",
+      "وزارة البيئة"
+    ],
+    "national_agencies": [
+      "ADE - الجزائرية للمياه",
+      "ONA - الديوان الوطني للتطهير",
+      "ANBT - الوكالة الوطنية للسدود",
+      "ONID - الديوان الوطني للري والصرف",
+      "ONTA - الديوان الوطني للراضي الفلاحية",
+      "OAIC - الديوان الجزائري المهني للحبوب",
+      "AADL - وكالة عدل",
+      "OPGI - الديوان الوطني للترقية العقارية",
+      "LPP - الترقية العقارية العمومية",
+      "ENPI - المؤسسة الوطنية للترقية العقارية"
+    ],
+    "regional_directorates": [
+      "مديريات الموارد المائية (DRE)",
+      "مديريات الفلاحة (DSA)",
+      "مديريات التربية",
+      "مديريات الصحة",
+      "مديريات السكن",
+      "مديريات الشغال العمومية",
+      "البلديات",
+      "الولايات"
+    ]
+  },
+  "public_enterprises": {
+    "energy": [
+      "Sonatrach - سوناطراك",
+      "Sonelgaz - سونلغاز",
+      "Naftal - نفطال",
+      "ALNAFT",
+      "Sonelgaz Production",
+      "Sonelgaz Distribution"
+    ],
+    "water": [
+      "ADE - الجزائرية للمياه",
+      "ONA - الديوان الوطني للتطهير",
+      "SEAAL - سيال",
+      "SEOR - سيوغ",
+      "SEACO - سياقو"
+    ],
+    "construction": [
+      "Cosider - كوسيدار",
+      "GCB",
+      "ETRHB",
+      "SAPTA",
+      "Hydro-Traitement",
+      "Cosider Canalisation"
+    ],
+    "mining_industry": [
+      "GICA - مجمع السمنت",
+      "Ferphos",
+      "Somiphos",
+      "Asmidal",
+      "Sorfert",
+      "AOA",
+      "SNVI",
+      "ENIE",
+      "ENIEM"
+    ],
+    "transport": [
+      "Air Algérie",
+      "SNTF",
+      "ETUSA",
+      "TRANSUB",
+      "CNAN",
+      "Hyproc",
+      "Tassili Airlines"
+    ],
+    "telecom": [
+      "Algérie Télécom",
+      "Mobilis",
+      "Djezzy",
+      "Ooredoo"
+    ]
+  },
+  "private_enterprises": {
+    "top_groups": [
+      "Cevital - سيفيتال",
+      "Tosyali Algérie",
+      "Groupe Hasnaoui",
+      "Biopharm",
+      "Kherbouch",
+      "Condor",
+      "Iris",
+      "Cristor",
+      "Groupe Benamor",
+      "Sim",
+      "Ifri",
+      "Rouiba",
+      "La Belle",
+      "Hamoud Boualem"
+    ],
+    "construction_private": [
+      "Groupe Hasnaoui",
+      "ETRHB",
+      "BATIMETAL",
+      "SARL BTP Algérie",
+      "Groupe Bouzid"
+    ],
+    "food_industry": [
+      "Cevital",
+      "Ifri",
+      "Rouiba",
+      "La Belle",
+      "Hamoud Boualem",
+      "Groupe Benamor",
+      "Sim",
+      "Candia",
+      "Soummam"
+    ],
+    "pharmaceutical": [
+      "Biopharm",
+      "Saidal",
+      "Hikma",
+      "LAD Pharma",
+      "Imed"
+    ]
+  },
+  "family_mapping": {
+    "agriculture": "الفلاحية والحيوانية",
+    "water_services": "خدمات فلاحية ومائية",
+    "construction": "البناء والشغال",
+    "trade_distribution": "التجارة والتوزيع",
+    "industry_mining_energy": "الصناعية والمنجمية والطاقوية",
+    "tourism_hospitality": "السياحية والفندقية والخدمية",
+    "public_facilities": "مرافق ومنفعة عامة",
+    "households_individuals": "السر والفراد"
   }
 }

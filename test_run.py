@@ -4,7 +4,9 @@ import logging
 import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
-from crawlers import ADECrawler, AlgeriaTendersCrawler, ONACrawler
+from crawlers import (
+    ADECrawler, AlgeriaTendersCrawler, ONACrawler, MarchesPublicsCrawler
+)
 from telegram_notifier import TelegramNotifier
 from tender_filter import TenderFilter
 from storage import TenderDatabase
@@ -20,7 +22,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-    raise ValueError("يجب ضبط TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID في ملف .env")
+    raise ValueError("يجب ضبط TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID في .env")
 
 
 def save_to_json(data, filename="tenders_results.json"):
@@ -40,9 +42,9 @@ def save_to_excel(data, filename="tenders_results.xlsx"):
         "organisation": "الهيئة / الجهة",
         "wilaya": "الولاية",
         "product": "نوع المنتج",
-        "deadline": "آخر جل للتسليم",
+        "deadline": "آخر جل",
         "status": "الحالة",
-        "link": "رابط المناقصة",
+        "link": "الرابط",
         "relevance_score": "درجة الهمية",
         "wilaya_priority": "ولوية الولاية",
     }
@@ -53,14 +55,12 @@ def save_to_excel(data, filename="tenders_results.xlsx"):
 
 def format_telegram_message(new_tenders, stats):
     today = datetime.now().strftime("%Y-%m-%d")
-
     msg = f"تقرير المناقصات - {today}\n"
     msg += "=" * 28 + "\n\n"
-
-    msg += "حصائيات سريعة:\n"
+    msg += "احصائيات سريعة:\n"
     msg += f"   - مناقصات جديدة اليوم: {len(new_tenders)}\n"
-    msg += f"   - جمالي المناقصات المحفوظة: {stats['total']}\n"
-    msg += f"   - مناقصات جديدة (لم ترسل): {stats['new_unnotified']}\n"
+    msg += f"   - الاجمالي: {stats['total']}\n"
+    msg += f"   - غير مرسلة: {stats['new_unnotified']}\n"
     msg += "=" * 28 + "\n\n"
 
     for idx, item in enumerate(new_tenders[:10], 1):
@@ -68,10 +68,8 @@ def format_telegram_message(new_tenders, stats):
             [f["name_ar"] for f in item.get("matched_families", [])]
         )
         wilaya = item.get("wilaya", "غير محددة")
-        wilaya_priority = item.get("wilaya_priority", "")
-
-        icon = "[T]" if wilaya_priority == "target" else (
-            "[P]" if wilaya_priority == "priority" else "[-]"
+        icon = "[T]" if item.get("wilaya_priority") == "target" else (
+            "[P]" if item.get("wilaya_priority") == "priority" else "[-]"
         )
 
         msg += f"[{idx}] {item['title']}\n"
@@ -82,7 +80,7 @@ def format_telegram_message(new_tenders, stats):
         msg += f"     الرابط: {item.get('link', '#')}\n\n"
 
     if len(new_tenders) > 10:
-        msg += f"\n... و {len(new_tenders) - 10} مناقصة خرى في ملف Excel.\n"
+        msg += f"\n... و {len(new_tenders) - 10} اخرى في Excel.\n"
 
     msg += "\nملف Excel مرفق."
     return msg
@@ -90,11 +88,16 @@ def format_telegram_message(new_tenders, stats):
 
 def main():
     print("=" * 70)
-    print("   DZ-TENDERS-MVP : فحص المناقصات ورسال التنبيهات")
+    print("   DZ-TENDERS-MVP : فحص المناقصات")
     print("=" * 70)
 
-    print("\n[1/5] جاري جمع المناقصات...")
-    crawlers = [ADECrawler(), ONACrawler(), AlgeriaTendersCrawler()]
+    print("\n[1/5] جمع المناقصات من المصادر...")
+    crawlers = [
+        ADECrawler(),
+        ONACrawler(),
+        AlgeriaTendersCrawler(),
+        MarchesPublicsCrawler(),
+    ]
     all_tenders = []
 
     for crawler in crawlers:
@@ -108,47 +111,35 @@ def main():
     unique_tenders = list(
         {t.get("title", ""): t for t in all_tenders if t.get("title")}.values()
     )
-    print(f"   جمالي: {len(unique_tenders)} مناقصة فريدة")
+    print(f"   الاجمالي: {len(unique_tenders)} مناقصة فريدة")
 
-    print("\n[2/5] جاري الفلترة...")
+    print("\n[2/5] الفلترة...")
     filter_obj = TenderFilter()
     filtered = filter_obj.filter_tenders(unique_tenders)
     summary = filter_obj.summary(filtered)
     print(f"   {summary['total_filtered']} مناقصة مستهدفة")
 
-    print("\n[3/5] جاري دارة قاعدة البيانات...")
+    print("\n[3/5] قاعدة البيانات...")
     db = TenderDatabase()
-
     new_count = 0
-    duplicate_count = 0
+    dup_count = 0
     for t in filtered:
         if db.add_tender(t):
             new_count += 1
         else:
-            duplicate_count += 1
+            dup_count += 1
+    print(f"   جديدة: {new_count} | مكررة: {dup_count}")
 
-    print(f"   جديدة: {new_count}")
-    print(f"   مكررة: {duplicate_count}")
-
-    print("\n[4/5] تحديد المناقصات الجديدة...")
+    print("\n[4/5] المناقصات الجديدة...")
     new_tenders = db.get_new_tenders(filtered)
-    print(f"   {len(new_tenders)} مناقصة جديدة للرسال")
-
+    print(f"   {len(new_tenders)} مناقصة جديدة")
     stats = db.stats()
-    print(f"\n   الحصائيات:")
-    print(f"      - الجمالي في DB: {stats['total']}")
-    print(f"      - اليوم: {stats['today']}")
-    print(f"      - غير مرسلة: {stats['new_unnotified']}")
-    if stats["by_wilaya"]:
-        print(f"      - حسب الولاية (على 5):")
-        for w in stats["by_wilaya"][:5]:
-            print(f"         - {w['wilaya']}: {w['count']}")
+    print(f"   الاجمالي في DB: {stats['total']}")
 
-    print("\n[5/5] جاري الحفظ والرسال...")
+    print("\n[5/5] الحفظ والارسال...")
     save_to_json(filtered)
     excel_file = "tenders_results.xlsx"
     save_to_excel(filtered, filename=excel_file)
-    print(f"   تم حفظ {len(filtered)} مناقصة")
 
     if new_tenders:
         notifier = TelegramNotifier(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
@@ -160,9 +151,9 @@ def main():
         )
         for t in new_tenders:
             db.mark_notified(t)
-        print(f"   تم رسال {len(new_tenders)} مناقصة جديدة!")
+        print(f"   تم ارسال {len(new_tenders)} مناقصة!")
     else:
-        print("   لا توجد مناقصات جديدة للرسال.")
+        print("   لا توجد مناقصات جديدة.")
 
     print("\n" + "=" * 70)
     print("   انتهت العملية")
