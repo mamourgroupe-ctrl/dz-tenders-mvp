@@ -143,7 +143,9 @@ def main():
     save_to_excel(filtered, filename=excel_file)
 
     if new_tenders:
-        notifier = TelegramNotifier(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
+        target = TELEGRAM_CHANNEL_ID or TELEGRAM_CHAT_ID
+        print(f"   [TARGET] Sending to: {target}")
+        notifier = TelegramNotifier(TELEGRAM_BOT_TOKEN, target)
         text_report = format_telegram_message(new_tenders, stats)
         notifier.send_message(text_report)
         notifier.send_excel_report(

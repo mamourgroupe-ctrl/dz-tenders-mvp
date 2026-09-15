@@ -1,0 +1,206 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DZ-TENDERS Dashboard — MAMOUR GROUP</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root { --bg:#0b1220; --panel:#121c2f; --line:#23324f; --txt:#e8eefc;
+           --muted:#93a4c4; --acc:#32d583; --acc2:#f7b955; --acc3:#5aa9ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0b1220; color:var(--txt);
+         font-family:"Segoe UI",Tahoma,Arial,sans-serif; }
+  header { padding:24px; border-bottom:1px solid var(--line); }
+  h1 { margin:0; font-size:22px; }
+  .sub { color:var(--muted); font-size:13px; margin-top:6px; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+          gap:14px; padding:20px 24px; }
+  .kpi { background:var(--panel); border:1px solid var(--line); border-radius:14px;
+         padding:18px; }
+  .kpi .num { font-size:32px; font-weight:800; color:var(--acc); }
+  .kpi .lbl { color:var(--muted); font-size:13px; margin-top:6px; }
+  .charts { display:grid; grid-template-columns:1fr 1fr; gap:20px; padding:0 24px 20px; }
+  @media (max-width:900px) { .charts { grid-template-columns:1fr; } }
+  .chart-box { background:var(--panel); border:1px solid var(--line);
+               border-radius:14px; padding:16px; min-height:300px; }
+  .chart-box h3 { margin:0 0 14px; font-size:15px; color:var(--muted); }
+  .controls { display:flex; gap:12px; padding:14px 24px; flex-wrap:wrap;
+              border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+              background:#0e1729; position:sticky; top:0; z-index:10; }
+  select, input, button { background:#0e1729; color:var(--txt); border:1px solid var(--line);
+         border-radius:10px; padding:10px 14px; font-size:14px; font-family:inherit; }
+  input { flex:1; min-width:200px; }
+  button { background:var(--acc); color:#0b1220; font-weight:700; cursor:pointer; }
+  button:hover { opacity:0.9; }
+  .container { padding:0 24px 40px; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { padding:10px; border-bottom:1px solid var(--line); text-align:right; vertical-align:top; }
+  th { color:var(--muted); font-size:12.5px; background:#101a2c;
+       position:sticky; top:60px; z-index:5; }
+  tr:hover td { background:#101c31; }
+  a { color:var(--acc3); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:20px;
+           font-size:11px; background:#243352; margin:2px; }
+  .loading { color:var(--muted); padding:40px; text-align:center; }
+  .p1 { background:#32d583; color:#0b1220; }
+  .p2 { background:#f7b955; color:#0b1220; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🇩🇿 DZ-TENDERS Dashboard</h1>
+  <div class="sub">MAMOUR GROUP · نظام رصد المناقصات · 318 مصدر · 69 ولاية</div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><div class="num" id="kpi-total">-</div><div class="lbl">📁 جمالي المناقصات</div></div>
+  <div class="kpi"><div class="num" id="kpi-today">-</div><div class="lbl">🆕 اليوم</div></div>
+  <div class="kpi"><div class="num" id="kpi-week">-</div><div class="lbl">📅 آخر 7 يام</div></div>
+  <div class="kpi"><div class="num" id="kpi-notified">-</div><div class="lbl">📬 تم رسالها</div></div>
+</div>
+
+<div class="charts">
+  <div class="chart-box">
+    <h3>📍 التوزيع حسب الولاية</h3>
+    <canvas id="chartWilaya"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>🎯 التوزيع حسب العائلة</h3>
+    <canvas id="chartFamily"></canvas>
+  </div>
+</div>
+
+<div class="controls">
+  <input id="searchBox" placeholder="🔍 ابحث في عناوين المناقصات...">
+  <select id="filterWilaya"><option value="">كل الولايات</option></select>
+  <button onclick="loadTenders()">🔄 تحديث</button>
+</div>
+
+<div class="container">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:35%">عنوان المناقصة</th>
+        <th>الجهة</th>
+        <th>الولاية</th>
+        <th>العائلات</th>
+        <th>الهمية</th>
+        <th>التاريخ</th>
+        <th>الرابط</th>
+      </tr>
+    </thead>
+    <tbody id="tendersBody">
+      <tr><td colspan="7" class="loading">⏳ جاري التحميل...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+let chartWilaya, chartFamily;
+const COLORS = ['#32d583','#f7b955','#5aa9ff','#e74c3c','#9b59b6','#1abc9c','#e67e22','#34495e'];
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/stats');
+    const d = await r.json();
+    document.getElementById('kpi-total').textContent = d.total;
+    document.getElementById('kpi-today').textContent = d.today;
+    document.getElementById('kpi-week').textContent = d.week;
+    document.getElementById('kpi-notified').textContent = d.notified;
+
+    const wLabels = d.by_wilaya.map(x => x.wilaya);
+    const wData = d.by_wilaya.map(x => x.count);
+    if (chartWilaya) chartWilaya.destroy();
+    chartWilaya = new Chart(document.getElementById('chartWilaya'), {
+      type: 'bar',
+      data: { labels: wLabels, datasets: [{ data: wData, backgroundColor: '#32d583', borderRadius: 6 }]},
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { ticks: { color: '#93a4c4' }, grid: { color: '#23324f' } },
+          x: { ticks: { color: '#93a4c4', maxRotation: 45 }, grid: { display: false } }
+        }
+      }
+    });
+
+    const fLabels = d.by_family.map(x => (x.matched_families || '').split(',')[0] || 'غير محدد');
+    const fData = d.by_family.map(x => x.count);
+    if (chartFamily) chartFamily.destroy();
+    chartFamily = new Chart(document.getElementById('chartFamily'), {
+      type: 'doughnut',
+      data: { labels: fLabels, datasets: [{ data: fData, backgroundColor: COLORS }] },
+      options: { responsive: true, plugins: { legend: { labels: { color: '#e8eefc' } } } }
+    });
+  } catch (e) { console.error(e); }
+}
+
+async function loadWilayas() {
+  try {
+    const r = await fetch('/api/wilayas');
+    const wilayas = await r.json();
+    const sel = document.getElementById('filterWilaya');
+    wilayas.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w; opt.textContent = w;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', loadTenders);
+  } catch (e) { console.error(e); }
+}
+
+async function loadTenders() {
+  const wilaya = document.getElementById('filterWilaya').value;
+  const search = document.getElementById('searchBox').value.trim();
+  let url = '/api/tenders?limit=200';
+  if (wilaya) url += '&wilaya=' + encodeURIComponent(wilaya);
+  if (search) url += '&q=' + encodeURIComponent(search);
+
+  const tbody = document.getElementById('tendersBody');
+  tbody.innerHTML = '<tr><td colspan="7" class="loading">⏳ جاري التحميل...</td></tr>';
+
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!d.tenders || !d.tenders.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="loading">❌ لا توجد نتائج</td></tr>';
+      return;
+    }
+    tbody.innerHTML = d.tenders.map(t => {
+      const famBadges = (t.matched_families_list || []).filter(f => f)
+        .map(f => `<span class="badge">${f}</span>`).join('');
+      const scoreClass = t.relevance_score >= 10 ? 'p1' : (t.relevance_score >= 6 ? 'p2' : '');
+      const date = (t.first_seen || '').slice(0, 10);
+      return `
+        <tr>
+          <td>${(t.title || '-').slice(0, 100)}</td>
+          <td>${t.organisation || '-'}</td>
+          <td>${t.wilaya || '-'}</td>
+          <td>${famBadges || '-'}</td>
+          <td><span class="badge ${scoreClass}">${t.relevance_score || 0}</span></td>
+          <td>${date}</td>
+          <td>${t.link ? `<a href="${t.link}" target="_blank">فتح ↗</a>` : '-'}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7" class="loading">❌ خط: ${e.message}</td></tr>`;
+  }
+}
+
+document.getElementById('searchBox').addEventListener('input', () => {
+  clearTimeout(window._searchTimer);
+  window._searchTimer = setTimeout(loadTenders, 400);
+});
+
+loadStats();
+loadWilayas();
+loadTenders();
+setInterval(loadStats, 60000);
+</script>
+
+</body>
+</html>
