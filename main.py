@@ -8,8 +8,6 @@ import os
 
 from dotenv import load_dotenv
 
-from config import AppConfig
-
 # ⬇️ استيرادات مشروعك الفعلي
 from crawlers import ADECrawler, AlgeriaTendersCrawler, ONACrawler
 from notifications.base import NotificationManager
@@ -19,6 +17,19 @@ from storage.db import TenderStore
 from tender_filter import TenderFilter
 
 load_dotenv()
+
+TRUE_VALUES = {"1", "true", "yes", "y", "on"}
+
+
+def env_flag(name: str, default: bool = False) -> bool:
+    """Read boolean environment flags."""
+    raw_value = os.getenv(name)
+
+    if raw_value is None:
+        return default
+
+    return raw_value.strip().lower() in TRUE_VALUES
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -80,13 +91,12 @@ def build_summary_message(new_tenders: list[dict]) -> str:
 
 
 def run():
-    config = AppConfig.from_env()
-    dry_run = config.dry_run
+    dry_run = env_flag("DRY_RUN", default=True)
     logger.info("=" * 60)
     logger.info("🚀 بدء تشغيل DZ-TENDERS-MVP")
     logger.info("=" * 60)
 
-    store = TenderStore(db_path=config.db_path)
+    store = TenderStore(db_path=os.environ.get("DB_PATH", "tenders.db"))
     notifier = build_notifier()
 
     logger.info("📥 بدء الزحف...")
@@ -118,8 +128,7 @@ def run():
         logger.info(f"نتائج الإرسال: {results}")
 
         for tender in new_or_changed:
-            store.mark_sent(tender)
-
+            store.mark_notified(tender)
     logger.info(f"📊 إجمالي المناقصات المسجلة: {store.count()}")
     store.close()
     logger.info("=" * 60)
