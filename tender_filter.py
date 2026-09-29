@@ -1,8 +1,7 @@
-﻿import json
+import json
+import logging
 import os
 import re
-import logging
-from typing import List, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +17,42 @@ class TenderFilter:
     MIN_SCORE_THRESHOLD = 3
 
     STOP_WORDS = {
-        "من", "في", "على", "الى", "لى", "عن", "مع", "هذا", "هذه",
-        "ذلك", "التي", "الذي", "ما", "لا", "هو", "هي", "و", "و",
-        "ثم", "قد", "كل", "بعض", "بين", "عند", "لدى", "نحو", "حول",
-        "the", "and", "or", "of", "for", "to", "in", "on", "at", "by"
+        "من",
+        "في",
+        "على",
+        "الى",
+        "لى",
+        "عن",
+        "مع",
+        "هذا",
+        "هذه",
+        "ذلك",
+        "التي",
+        "الذي",
+        "ما",
+        "لا",
+        "هو",
+        "هي",
+        "و",
+        "ثم",
+        "قد",
+        "كل",
+        "بعض",
+        "بين",
+        "عند",
+        "لدى",
+        "نحو",
+        "حول",
+        "the",
+        "and",
+        "or",
+        "of",
+        "for",
+        "to",
+        "in",
+        "on",
+        "at",
+        "by",
     }
 
     def __init__(self, targets_file: str = TARGETS_FILE):
@@ -30,9 +61,9 @@ class TenderFilter:
         self._compile_patterns()
         self._compile_wilaya_patterns()
 
-    def _load_targets(self) -> Dict:
+    def _load_targets(self) -> dict:
         try:
-            with open(self.targets_file, "r", encoding="utf-8") as f:
+            with open(self.targets_file, encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
             logger.error(f"ملف {self.targets_file} غير موجود!")
@@ -61,7 +92,7 @@ class TenderFilter:
             return word[2:]
         return word
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str) -> list[str]:
         tokens = text.split()
         result = []
         for token in tokens:
@@ -85,15 +116,17 @@ class TenderFilter:
                     normalized = self._normalize(e)
                     entity_tokens.extend(self._tokenize(normalized))
 
-            self.family_patterns.append({
-                "id": family["id"],
-                "name_ar": family["name_ar"],
-                "name_fr": family.get("name_fr", ""),
-                "priority": family.get("priority", ""),
-                "channel": family.get("channel", ""),
-                "keywords": keywords,
-                "entity_tokens": list(set(entity_tokens)),
-            })
+            self.family_patterns.append(
+                {
+                    "id": family["id"],
+                    "name_ar": family["name_ar"],
+                    "name_fr": family.get("name_fr", ""),
+                    "priority": family.get("priority", ""),
+                    "channel": family.get("channel", ""),
+                    "keywords": keywords,
+                    "entity_tokens": list(set(entity_tokens)),
+                }
+            )
 
         self.product_patterns = {}
         for key, values in self.targets.get("products", {}).items():
@@ -114,7 +147,7 @@ class TenderFilter:
         norm = self._normalize(name)
         return self.wilaya_aliases.get(norm, name)
 
-    def get_wilaya_priority(self, wilaya_text: str) -> Optional[str]:
+    def get_wilaya_priority(self, wilaya_text: str) -> str | None:
         if not wilaya_text:
             return None
         norm = self._normalize(wilaya_text)
@@ -126,7 +159,7 @@ class TenderFilter:
                 return "priority"
         return "other"
 
-    def find_wilaya_in_text(self, text: str) -> Optional[str]:
+    def find_wilaya_in_text(self, text: str) -> str | None:
         if not text:
             return None
         norm = self._normalize(text)
@@ -152,22 +185,24 @@ class TenderFilter:
             return True
         return False
 
-    def _count_keyword_matches(self, text: str, keywords: List[str]) -> Tuple[int, List[str]]:
+    def _count_keyword_matches(self, text: str, keywords: list[str]) -> tuple[int, list[str]]:
         matched = [kw for kw in keywords if self._has_keyword(text, kw)]
         return len(matched), matched
 
-    def _count_token_matches(self, text_tokens: set, tokens: List[str]) -> Tuple[int, List[str]]:
+    def _count_token_matches(self, text_tokens: set, tokens: list[str]) -> tuple[int, list[str]]:
         matched = [t for t in tokens if t in text_tokens]
         return len(matched), matched
 
-    def classify_tender(self, tender: Dict) -> Optional[Dict]:
-        combined_text = " ".join([
-            str(tender.get("title", "")),
-            str(tender.get("organisation", "")),
-            str(tender.get("product", "")),
-            str(tender.get("description", "")),
-            str(tender.get("wilaya", "")),
-        ])
+    def classify_tender(self, tender: dict) -> dict | None:
+        combined_text = " ".join(
+            [
+                str(tender.get("title", "")),
+                str(tender.get("organisation", "")),
+                str(tender.get("product", "")),
+                str(tender.get("description", "")),
+                str(tender.get("wilaya", "")),
+            ]
+        )
         combined_text = self._normalize(combined_text)
         text_tokens = set(self._tokenize(combined_text))
 
@@ -179,16 +214,18 @@ class TenderFilter:
             score = (self.WEIGHT_KEYWORD * kw_count) + (self.WEIGHT_ENTITY * tok_count)
 
             if score >= self.MIN_SCORE_THRESHOLD:
-                matched_families.append({
-                    "id": family["id"],
-                    "name_ar": family["name_ar"],
-                    "name_fr": family["name_fr"],
-                    "priority": family["priority"],
-                    "channel": family["channel"],
-                    "score": score,
-                    "matched_keywords": kw_matches,
-                    "matched_tokens": tok_matches,
-                })
+                matched_families.append(
+                    {
+                        "id": family["id"],
+                        "name_ar": family["name_ar"],
+                        "name_fr": family["name_fr"],
+                        "priority": family["priority"],
+                        "channel": family["channel"],
+                        "score": score,
+                        "matched_keywords": kw_matches,
+                        "matched_tokens": tok_matches,
+                    }
+                )
 
         matched_families.sort(key=lambda x: x["score"], reverse=True)
 
@@ -202,7 +239,9 @@ class TenderFilter:
         if not matched_families and not matched_products:
             return None
 
-        total_score = sum(f["score"] for f in matched_families) + (self.WEIGHT_PRODUCT * len(matched_products))
+        total_score = sum(f["score"] for f in matched_families) + (
+            self.WEIGHT_PRODUCT * len(matched_products)
+        )
 
         current_wilaya = tender.get("wilaya", "").strip()
         if current_wilaya:
@@ -222,7 +261,7 @@ class TenderFilter:
             "wilaya_priority": wilaya_priority,
         }
 
-    def filter_tenders(self, tenders: List[Dict]) -> List[Dict]:
+    def filter_tenders(self, tenders: list[dict]) -> list[dict]:
         results = []
         for tender in tenders:
             classified = self.classify_tender(tender)
@@ -232,7 +271,7 @@ class TenderFilter:
         logger.info(f"تم تصنيف {len(results)} من صل {len(tenders)} مناقصة")
         return results
 
-    def group_by_family(self, filtered_tenders: List[Dict]) -> Dict:
+    def group_by_family(self, filtered_tenders: list[dict]) -> dict:
         groups = {}
         for tender in filtered_tenders:
             for family in tender.get("matched_families", []):
@@ -247,7 +286,7 @@ class TenderFilter:
                 groups[family_id]["tenders"].append(tender)
         return groups
 
-    def summary(self, filtered_tenders: List[Dict]) -> Dict:
+    def summary(self, filtered_tenders: list[dict]) -> dict:
         groups = self.group_by_family(filtered_tenders)
         return {
             "total_filtered": len(filtered_tenders),

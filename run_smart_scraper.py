@@ -1,20 +1,21 @@
-﻿"""
+"""
 run_smart_scraper.py
 Priority-based scraper for sources from sources_master.json
 Usage: python run_smart_scraper.py [priority] [limit]
 """
 
+import logging
 import os
 import sys
-import logging
 from datetime import datetime
+
 from dotenv import load_dotenv
 
-from sources import SourcesLoader
 from crawlers.smart_crawler import SmartCrawler
-from tender_filter import TenderFilter
-from telegram_notifier import TelegramNotifier
+from sources import SourcesLoader
 from storage import TenderDatabase
+from telegram_notifier import TelegramNotifier
+from tender_filter import TenderFilter
 
 logging.basicConfig(
     level=logging.INFO,

@@ -1,3 +1,3 @@
-﻿from .loader import SourcesLoader
+from .loader import SourcesLoader
 
 __all__ = ["SourcesLoader"]
