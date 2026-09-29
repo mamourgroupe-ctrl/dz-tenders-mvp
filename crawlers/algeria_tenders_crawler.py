@@ -1,5 +1,6 @@
 import logging
 import unicodedata
+from urllib.parse import urljoin
 
 import requests
 import urllib3
@@ -79,29 +80,28 @@ class AlgeriaTendersCrawler(BaseCrawler):
             text = elem.get_text(separator=" ", strip=True)
 
             # اشتراط طول مناسب للنص ليكون عنوان صفقة حقيقي
-            if 20 <= len(text) <= 250 and text not in seen:
-                if self.is_relevant(text):
-                    seen.add(text)
-                    href = elem.get("href") if elem.name == "a" else elem.find("a", href=True)
-                    link = (
-                        href["href"]
-                        if isinstance(href, dict) and "href" in href
-                        else (href if isinstance(href, str) else self.base_url)
-                    )
+            if 20 <= len(text) <= 250 and text not in seen and self.is_relevant(text):
+                seen.add(text)
+                href = elem.get("href") if elem.name == "a" else elem.find("a", href=True)
+                link = (
+                    href["href"]
+                    if isinstance(href, dict) and "href" in href
+                    else (href if isinstance(href, str) else self.base_url)
+                )
 
-                    full_link = urljoin(self.base_url, link)
+                full_link = urljoin(self.base_url, link)
 
-                    tenders.append(
-                        {
-                            "title": text,
-                            "organisation": "القطاع العمومي / الموارد المائية",
-                            "wilaya": "الجزائر",
-                            "product": "أنابيب / خزانات بلاستيكية",
-                            "deadline": "مفتوحة حالياً",
-                            "status": "مفتوحة",
-                            "link": full_link,
-                        }
-                    )
+                tenders.append(
+                    {
+                        "title": text,
+                        "organisation": "القطاع العمومي / الموارد المائية",
+                        "wilaya": "الجزائر",
+                        "product": "أنابيب / خزانات بلاستيكية",
+                        "deadline": "مفتوحة حالياً",
+                        "status": "مفتوحة",
+                        "link": full_link,
+                    }
+                )
 
         return tenders
 
@@ -133,7 +133,9 @@ class AlgeriaTendersCrawler(BaseCrawler):
                     "link": "https://www.ona.dz",  # ✅ رابط شغال 100%
                 },
                 {
-                    "title": "Acquisition de citernes et réservoirs en plastique Haute Densité 10000L",
+                    "title": (
+                        "Acquisition de citernes et réservoirs en plastique Haute Densité 10000L"
+                    ),
                     "organisation": "Direction des Ressources en Eau (DRE)",
                     "wilaya": "El Oued",
                     "product": "Plastic Tanks",

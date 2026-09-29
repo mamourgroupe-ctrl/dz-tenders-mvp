@@ -181,9 +181,7 @@ class TenderFilter:
         if keyword in text:
             return True
         stripped = self._strip_arabic_prefix(keyword)
-        if stripped != keyword and stripped in text:
-            return True
-        return False
+        return bool(stripped != keyword and stripped in text)
 
     def _count_keyword_matches(self, text: str, keywords: list[str]) -> tuple[int, list[str]]:
         matched = [kw for kw in keywords if self._has_keyword(text, kw)]
