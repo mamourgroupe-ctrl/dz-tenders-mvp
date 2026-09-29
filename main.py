@@ -110,7 +110,7 @@ def run():
     logger.info(f"نتائج الإرسال: {results}")
 
     for tender in new_or_changed:
-        store.mark_sent(tender)
+        store.mark_notified(tender)
 
     logger.info(f"📊 إجمالي المناقصات المسجلة: {store.count()}")
     store.close()

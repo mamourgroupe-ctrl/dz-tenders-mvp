@@ -25,6 +25,29 @@ class TenderStore(TenderDatabase):
 
         return row is None
 
+    def mark_sent(self, tender: dict) -> None:
+        """Backward-compatible alias for mark_notified."""
+        self.mark_notified(tender)
+
+    def is_sent(self, tender: dict) -> bool:
+        """Backward-compatible alias for is_notified."""
+        return self.is_notified(tender)
+
+    def count(self) -> int:
+        """Return number of stored tenders."""
+        with self._connect() as conn:
+            row = conn.execute("SELECT COUNT(*) AS total FROM tenders").fetchone()
+
+        return int(row["total"] if row else 0)
+
+    def close(self) -> None:
+        """Backward-compatible no-op.
+
+        TenderDatabase opens SQLite connections with context managers,
+        so there is no persistent connection to close.
+        """
+        return None
+
     def save(self, tender: dict) -> bool:
         """Backward-compatible alias for add_tender."""
         return self.add_tender(tender)
