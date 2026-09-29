@@ -1,21 +1,42 @@
-import logging
+from pathlib import Path
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+from playwright.async_api import async_playwright
 
 
 class BaseCrawler:
-    """
-    الكلاس الأساسي (Base Class) لجميع الكرولرز في المشروع
-    """
+    def __init__(self, site_name: str):
+        self.site_name = site_name
+        # تحديد مسار حفظ الجلسة بناءً على اسم الموقع
+        self.session_dir = Path("storage/auth")
+        self.session_dir.mkdir(parents=True, exist_ok=True)
+        self.session_file = self.session_dir / f"{self.site_name}_state.json"
 
-    def __init__(self, base_url):
-        self.base_url = base_url
+    async def start_browser(self):
+        self.playwright = await async_playwright().start()
+        # تشغيل المتصفح (يمكن جعله headless=True في بيئة الإنتاج)
+        self.browser = await self.playwright.chromium.launch(headless=False)
 
-    def fetch_page(self, url):
-        raise NotImplementedError("يجب تطبيق هذه الدالة في الكلاس الفرعي")
+        # تحميل الجلسة إذا كانت موجودة
+        if self.session_file.exists():
+            print(f"✅ تم تحميل الجلسة المحفوظة لـ {self.site_name}")
+            self.context = await self.browser.new_context(storage_state=str(self.session_file))
+        else:
+            print(f"⚠️ لا توجد جلسة لـ {self.site_name}، سيتم إنشاء جلسة جديدة.")
+            self.context = await self.browser.new_context()
 
-    def parse_tenders(self, html_content):
-        raise NotImplementedError("يجب تطبيق هذه الدالة في الكلاس الفرعي")
+        self.page = await self.context.new_page()
 
-    def run(self):
-        raise NotImplementedError("يجب تطبيق هذه الدالة في الكلاس الفرعي")
+    async def save_session(self):
+        """حفظ الجلسة بعد تسجيل الدخول الناجح"""
+        await self.context.storage_state(path=str(self.session_file))
+        print(f"💾 تم حفظ الجلسة بنجاح في: {self.session_file}")
+
+    async def close(self):
+        await self.browser.close()
+        await self.playwright.stop()
+
+
+# مثال على كيفية الاستخدام في ملف ade_crawler.py
+# class AdeCrawler(BaseCrawler):
+#     def __init__(self):
+#         super().__init__(site_name="ade") # سيحفظ الجلسة في storage/auth/ade_state.json
