@@ -12,6 +12,7 @@ from config import AppConfig
 
 # ⬇️ استيرادات مشروعك الفعلي
 from crawlers import ADECrawler, AlgeriaTendersCrawler, ONACrawler
+from logging_config import setup_logging
 from notifications.base import NotificationManager
 from notifications.excel_report import build_excel_report
 from notifications.telegram_channel import TelegramChannel
@@ -94,6 +95,7 @@ def build_summary_message(new_tenders: list[dict]) -> str:
 
 def run():
     config = AppConfig.from_env()
+    setup_logging(config.log_level)
     dry_run = config.dry_run
     logger.info("=" * 60)
     logger.info("🚀 بدء تشغيل DZ-TENDERS-MVP")
