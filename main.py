@@ -82,7 +82,7 @@ def run():
     logger.info("🚀 بدء تشغيل DZ-TENDERS-MVP")
     logger.info("=" * 60)
 
-    store = TenderStore(db_path=os.environ.get("DB_PATH", "tenders.db"))
+    store = TenderStore(db_path=config.db_path)
     notifier = build_notifier()
 
     logger.info("📥 بدء الزحف...")
