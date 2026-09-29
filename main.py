@@ -109,12 +109,16 @@ def run():
     excel_path = build_excel_report(new_or_changed)
     summary = build_summary_message(new_or_changed)
 
-    logger.info("📤 جاري الإرسال إلى تلغرام...")
-    results = notifier.broadcast(summary, filepath=excel_path)
-    logger.info(f"نتائج الإرسال: {results}")
+    if dry_run:
+        logger.warning("DRY_RUN=true: skipping Telegram send")
+        logger.info("DRY_RUN report path: %s", excel_path)
+    else:
+        logger.info("📤 جاري الإرسال إلى تلغرام...")
+        results = notifier.broadcast(summary, filepath=excel_path)
+        logger.info(f"نتائج الإرسال: {results}")
 
-    for tender in new_or_changed:
-        store.mark_sent(tender)
+        for tender in new_or_changed:
+            store.mark_sent(tender)
 
     logger.info(f"📊 إجمالي المناقصات المسجلة: {store.count()}")
     store.close()
