@@ -1,37 +1,47 @@
-# Environment variables (سري!)
+# Secrets
 .env
+
+# Python virtual environments
+venv/
+.venv/
 
 # Python cache
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-.venv/
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Output files
-tenders_results.json
-tenders_results.xlsx
+# Logs
+logs/
+*.log
 
-# IDE
-.vscode/
-.idea/
-.env.backup
-*.ps1
-
-.env.backup
-*.ps1
-
-# Database
+# Local databases
+storage/*.db
+storage/*.sqlite
 *.db
 *.sqlite
-*.sqlite3
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
+# Exports / generated files
+exports/
+storage/exports/
 
-# WhatsApp secrets
-whatsapp_config.json
+# Build files
+build/
+dist/
+*.egg-info/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local AI assistant config
+.kilo/
+
+# Generated tender result files
+tenders_results.json
+tenders_results.xlsx
+*_results.json
+*_results.xlsx

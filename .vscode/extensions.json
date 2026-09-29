@@ -1,0 +1,27 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "ms-python.vscode-python-envs",
+    "charliermarsh.ruff",
+    "eamodio.gitlens",
+    "github.vscode-github-actions",
+    "davidanson.vscode-markdownlint",
+    "ms-azuretools.vscode-containers",
+    "ms-vscode-remote.remote-containers",
+    "rangav.vscode-thunder-client",
+    "ritwickdey.liveserver",
+    "sonarsource.sonarlint-vscode",
+    "pkief.material-icon-theme"
+  ],
+  "unwantedRecommendations": [
+    "dart-code.dart-code",
+    "dart-code.flutter",
+    "redhat.java",
+    "vscjava.vscode-java-debug",
+    "vscjava.vscode-java-test",
+    "ms-dotnettools.vscode-dotnet-runtime",
+    "ms-vscode.cpptools"
+  ]
+}

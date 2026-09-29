@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install requirements",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m pip install -r requirements.txt",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Install dev requirements",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m pip install -r requirements-dev.txt",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run app",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe main.py",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run scraper",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe run_smart_scraper.py",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run tests",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m pytest -q",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Lint with Ruff",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m ruff check .",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Format with Ruff",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m ruff format .",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Full check",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m ruff check . && ${workspaceFolder}/.venv/Scripts/python.exe -m pytest -q",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

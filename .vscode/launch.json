@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run main.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/main.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Run run_smart_scraper.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/run_smart_scraper.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Run tender_filter.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/tender_filter.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Run telegram_notifier.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/telegram_notifier.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}
