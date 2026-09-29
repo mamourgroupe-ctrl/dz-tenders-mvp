@@ -8,6 +8,8 @@ import os
 
 from dotenv import load_dotenv
 
+from config import AppConfig
+
 # ⬇️ استيرادات مشروعك الفعلي
 from crawlers import ADECrawler, AlgeriaTendersCrawler, ONACrawler
 from notifications.base import NotificationManager
@@ -91,12 +93,13 @@ def build_summary_message(new_tenders: list[dict]) -> str:
 
 
 def run():
-    dry_run = env_flag("DRY_RUN", default=True)
+    config = AppConfig.from_env()
+    dry_run = config.dry_run
     logger.info("=" * 60)
     logger.info("🚀 بدء تشغيل DZ-TENDERS-MVP")
     logger.info("=" * 60)
 
-    store = TenderStore(db_path=os.environ.get("DB_PATH", "tenders.db"))
+    store = TenderStore(db_path=config.db_path)
     notifier = build_notifier()
 
     logger.info("📥 بدء الزحف...")
