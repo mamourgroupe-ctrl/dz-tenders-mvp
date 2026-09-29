@@ -18,6 +18,19 @@ from tender_filter import TenderFilter
 
 load_dotenv()
 
+TRUE_VALUES = {"1", "true", "yes", "y", "on"}
+
+
+def env_flag(name: str, default: bool = False) -> bool:
+    """Read boolean environment flags."""
+    raw_value = os.getenv(name)
+
+    if raw_value is None:
+        return default
+
+    return raw_value.strip().lower() in TRUE_VALUES
+
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -78,6 +91,7 @@ def build_summary_message(new_tenders: list[dict]) -> str:
 
 
 def run():
+    dry_run = env_flag("DRY_RUN", default=True)
     logger.info("=" * 60)
     logger.info("🚀 بدء تشغيل DZ-TENDERS-MVP")
     logger.info("=" * 60)
@@ -105,12 +119,16 @@ def run():
     excel_path = build_excel_report(new_or_changed)
     summary = build_summary_message(new_or_changed)
 
-    logger.info("📤 جاري الإرسال إلى تلغرام...")
-    results = notifier.broadcast(summary, filepath=excel_path)
-    logger.info(f"نتائج الإرسال: {results}")
+    if dry_run:
+        logger.warning("DRY_RUN=true: skipping Telegram send")
+        logger.info("DRY_RUN report path: %s", excel_path)
+    else:
+        logger.info("📤 جاري الإرسال إلى تلغرام...")
+        results = notifier.broadcast(summary, filepath=excel_path)
+        logger.info(f"نتائج الإرسال: {results}")
 
-    for tender in new_or_changed:
-        store.mark_notified(tender)
+        for tender in new_or_changed:
+            store.mark_notified(tender)
 
     logger.info(f"📊 إجمالي المناقصات المسجلة: {store.count()}")
     store.close()

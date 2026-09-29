@@ -45,3 +45,7 @@ tenders_results.json
 tenders_results.xlsx
 *_results.json
 *_results.xlsx
+
+# Local crawler auth/session data
+storage/auth
+storage/auth.backup.*
