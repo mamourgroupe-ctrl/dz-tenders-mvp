@@ -4,8 +4,8 @@ notifications/base.py
 تسمح بإضافة قنوات جديدة (WhatsApp, Email) دون تعديل باقي الكود.
 """
 
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +18,10 @@ class NotificationChannel(ABC):
         return self.__class__.__name__
 
     @abstractmethod
-    def send_text(self, message: str) -> bool:
-        ...
+    def send_text(self, message: str) -> bool: ...
 
     @abstractmethod
-    def send_file(self, filepath: str, caption: str = "") -> bool:
-        ...
+    def send_file(self, filepath: str, caption: str = "") -> bool: ...
 
 
 class NotificationManager:
@@ -45,11 +43,13 @@ class NotificationManager:
                 file_ok = None
                 if filepath:
                     file_ok = ch.send_file(filepath, caption=message[:150])
-                results.append({
-                    "channel": ch.name,
-                    "text_ok": text_ok,
-                    "file_ok": file_ok,
-                })
+                results.append(
+                    {
+                        "channel": ch.name,
+                        "text_ok": text_ok,
+                        "file_ok": file_ok,
+                    }
+                )
             except Exception as e:
                 logger.error(f"❌ فشل الإرسال عبر {ch.name}: {e}")
                 results.append({"channel": ch.name, "error": str(e)})

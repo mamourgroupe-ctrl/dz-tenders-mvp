@@ -1,15 +1,15 @@
-﻿import os
 import json
 import logging
-import pandas as pd
+import os
 from datetime import datetime
+
+import pandas as pd
 from dotenv import load_dotenv
-from crawlers import (
-    ADECrawler, AlgeriaTendersCrawler, ONACrawler, MarchesPublicsCrawler
-)
+
+from crawlers import ADECrawler, AlgeriaTendersCrawler, MarchesPublicsCrawler, ONACrawler
+from storage import TenderDatabase
 from telegram_notifier import TelegramNotifier
 from tender_filter import TenderFilter
-from storage import TenderDatabase
 
 logging.basicConfig(
     level=logging.INFO,
@@ -35,9 +35,7 @@ def save_to_excel(data, filename="tenders_results.xlsx"):
     if not data:
         return
     df = pd.DataFrame(data)
-    df_export = df.drop(
-        columns=["matched_families", "matched_products"], errors="ignore"
-    )
+    df_export = df.drop(columns=["matched_families", "matched_products"], errors="ignore")
     columns_mapping = {
         "title": "عنوان المناقصة",
         "organisation": "الهيئة / الجهة",
@@ -65,12 +63,12 @@ def format_telegram_message(new_tenders, stats):
     msg += "=" * 28 + "\n\n"
 
     for idx, item in enumerate(new_tenders[:10], 1):
-        families = " | ".join(
-            [f["name_ar"] for f in item.get("matched_families", [])]
-        )
+        families = " | ".join([f["name_ar"] for f in item.get("matched_families", [])])
         wilaya = item.get("wilaya", "غير محددة")
-        icon = "[T]" if item.get("wilaya_priority") == "target" else (
-            "[P]" if item.get("wilaya_priority") == "priority" else "[-]"
+        icon = (
+            "[T]"
+            if item.get("wilaya_priority") == "target"
+            else ("[P]" if item.get("wilaya_priority") == "priority" else "[-]")
         )
 
         msg += f"[{idx}] {item['title']}\n"
@@ -109,9 +107,7 @@ def main():
         except Exception as e:
             print(f"   [!] {crawler.__class__.__name__}: {e}")
 
-    unique_tenders = list(
-        {t.get("title", ""): t for t in all_tenders if t.get("title")}.values()
-    )
+    unique_tenders = list({t.get("title", ""): t for t in all_tenders if t.get("title")}.values())
     print(f"   الاجمالي: {len(unique_tenders)} مناقصة فريدة")
 
     print("\n[2/5] الفلترة...")

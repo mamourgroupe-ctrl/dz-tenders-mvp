@@ -1,18 +1,16 @@
-﻿"""
+"""
 sources/loader.py
 Load and query sources from data/sources_master.json
 """
 
 import json
-import os
 import logging
-from typing import List, Dict, Optional
+import os
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_FILE = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
-    "data", "sources_master.json"
+    os.path.dirname(os.path.dirname(__file__)), "data", "sources_master.json"
 )
 
 
@@ -24,7 +22,7 @@ class SourcesLoader:
         self.sources = self._load()
         logger.info(f"Loaded {len(self.sources)} sources")
 
-    def _load(self) -> List[Dict]:
+    def _load(self) -> list[dict]:
         try:
             with open(self.sources_file, encoding="utf-8") as f:
                 return json.load(f)
@@ -32,26 +30,26 @@ class SourcesLoader:
             logger.error(f"Not found: {self.sources_file}")
             return []
 
-    def by_priority(self, priority: str) -> List[Dict]:
+    def by_priority(self, priority: str) -> list[dict]:
         return [s for s in self.sources if str(s.get("pri")) == str(priority)]
 
-    def by_category(self, category: str) -> List[Dict]:
+    def by_category(self, category: str) -> list[dict]:
         return [s for s in self.sources if s.get("cat") == category]
 
-    def by_wilaya(self, wilaya: str) -> List[Dict]:
+    def by_wilaya(self, wilaya: str) -> list[dict]:
         return [s for s in self.sources if wilaya in str(s.get("w", ""))]
 
-    def crawlable(self, priority: Optional[str] = None) -> List[Dict]:
+    def crawlable(self, priority: str | None = None) -> list[dict]:
         """Return sources not blocked from server"""
         sources = self.by_priority(priority) if priority else self.sources
         blocked = {"live_but_blocked_from_sandbox", "unreachable_from_this_host"}
         return [s for s in sources if s.get("st") not in blocked]
 
-    def with_tender_page(self, priority: Optional[str] = None) -> List[Dict]:
+    def with_tender_page(self, priority: str | None = None) -> list[dict]:
         sources = self.by_priority(priority) if priority else self.sources
         return [s for s in sources if s.get("tp")]
 
-    def stats(self) -> Dict:
+    def stats(self) -> dict:
         by_pri, by_cat, by_st = {}, {}, {}
         for s in self.sources:
             by_pri[str(s.get("pri"))] = by_pri.get(str(s.get("pri")), 0) + 1
@@ -69,5 +67,6 @@ class SourcesLoader:
 
 if __name__ == "__main__":
     import json as j
+
     loader = SourcesLoader()
     print(j.dumps(loader.stats(), ensure_ascii=False, indent=2))

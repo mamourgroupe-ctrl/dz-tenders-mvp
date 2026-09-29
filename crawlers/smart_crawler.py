@@ -1,16 +1,18 @@
-﻿"""
+"""
 crawlers/smart_crawler.py
 Smart crawler for sources from sources_master.json
 """
 
-import requests
 import logging
 import unicodedata
-from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+
+import requests
+import urllib3
+from bs4 import BeautifulSoup
+
 from .base_crawler import BaseCrawler
 
-import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -18,14 +20,38 @@ class SmartCrawler(BaseCrawler):
     """Smart crawler with keyword detection"""
 
     KEYWORDS = [
-        "pvc", "pehd", "polyéthylène", "polyethylene",
-        "tuyau", "tuyaux", "conduite", "conduites", "raccord",
-        "canalisation", "réservoir", "reservoir", "citerne",
-        "cuve", "tank",
-        "نابيب", "نبوب", "خزانات", "خزان", "قنوات", "قناة",
-        "بلاستيك", "بولي يثيلين", "صرف", "ري",
-        "eau", "assainissement", "irrigation", "adduction",
-        "مياه", "تطهير", "سقي",
+        "pvc",
+        "pehd",
+        "polyéthylène",
+        "polyethylene",
+        "tuyau",
+        "tuyaux",
+        "conduite",
+        "conduites",
+        "raccord",
+        "canalisation",
+        "réservoir",
+        "reservoir",
+        "citerne",
+        "cuve",
+        "tank",
+        "نابيب",
+        "نبوب",
+        "خزانات",
+        "خزان",
+        "قنوات",
+        "قناة",
+        "بلاستيك",
+        "بولي يثيلين",
+        "صرف",
+        "ري",
+        "eau",
+        "assainissement",
+        "irrigation",
+        "adduction",
+        "مياه",
+        "تطهير",
+        "سقي",
     ]
 
     def __init__(self, source_name: str, base_url: str, priority: str = "1"):
@@ -36,7 +62,13 @@ class SmartCrawler(BaseCrawler):
     def _normalize(self, text: str) -> str:
         if not text:
             return ""
-        return unicodedata.normalize("NFD", text).encode("ascii", "ignore").decode("utf-8").lower().strip()
+        return (
+            unicodedata.normalize("NFD", text)
+            .encode("ascii", "ignore")
+            .decode("utf-8")
+            .lower()
+            .strip()
+        )
 
     def _fetch(self, url: str) -> str:
         headers = {
@@ -79,15 +111,17 @@ class SmartCrawler(BaseCrawler):
                 continue
             seen.add(full_link)
 
-            tenders.append({
-                "title": text[:200],
-                "organisation": self.source_name,
-                "wilaya": "غير محددة",
-                "product": "PE/PEHD/PVC",
-                "deadline": "غير محدد",
-                "status": "مفتوحة",
-                "link": full_link,
-            })
+            tenders.append(
+                {
+                    "title": text[:200],
+                    "organisation": self.source_name,
+                    "wilaya": "غير محددة",
+                    "product": "PE/PEHD/PVC",
+                    "deadline": "غير محدد",
+                    "status": "مفتوحة",
+                    "link": full_link,
+                }
+            )
 
         logging.info(f"  -> {len(tenders)} tenders from {self.source_name}")
         return tenders

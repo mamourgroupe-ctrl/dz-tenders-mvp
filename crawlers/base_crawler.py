@@ -1,11 +1,13 @@
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
 
 class BaseCrawler:
     """
     الكلاس الأساسي (Base Class) لجميع الكرولرز في المشروع
     """
+
     def __init__(self, base_url):
         self.base_url = base_url
 

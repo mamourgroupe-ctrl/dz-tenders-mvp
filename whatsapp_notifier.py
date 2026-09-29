@@ -3,8 +3,9 @@ whatsapp_notifier.py
 وحدة إرسال التنبيهات عبر WhatsApp Business Cloud API.
 """
 
-import os
 import logging
+import os
+
 from dotenv import load_dotenv
 from python_whatsapp_bot import Whatsapp
 
@@ -28,11 +29,7 @@ class WhatsAppNotifier:
             )
 
         # تهيئة العميل وفقًا للتوثيق الرسمي
-        self.bot = Whatsapp(
-            number_id=self.number_id,
-            token=self.token,
-            mark_as_read=True
-        )
+        self.bot = Whatsapp(number_id=self.number_id, token=self.token, mark_as_read=True)
 
     def send_text(self, to_number: str, text: str):
         """إرسال رسالة نصية (داخل نافذة 24 ساعة)"""
@@ -45,19 +42,12 @@ class WhatsAppNotifier:
             return None
 
     def send_template(
-        self,
-        to_number: str,
-        template_name: str,
-        language_code: str = "ar",
-        components: list = None
+        self, to_number: str, template_name: str, language_code: str = "ar", components: list = None
     ):
         """إرسال قالب معتمد"""
         try:
             result = self.bot.send_template_message(
-                to_number,
-                template_name,
-                components=components,
-                language_code=language_code
+                to_number, template_name, components=components, language_code=language_code
             )
             logger.info(f"✅ تم إرسال قالب '{template_name}' إلى {to_number}")
             return result
@@ -70,7 +60,7 @@ class WhatsAppNotifier:
         recipients: list,
         template_name: str,
         language_code: str = "ar",
-        components: list = None
+        components: list = None,
     ):
         """إرسال قالب إلى قائمة من الأرقام"""
         results = []

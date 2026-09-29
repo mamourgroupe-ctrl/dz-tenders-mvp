@@ -3,17 +3,17 @@ main.py
 نقطة الدمج الكاملة لمشروع DZ-TENDERS-MVP.
 """
 
-import os
 import logging
-from dotenv import load_dotenv
+import os
 
+from dotenv import load_dotenv
 from storage.db import TenderStore
-from notifications.base import NotificationManager
-from notifications.telegram_channel import TelegramChannel
-from notifications.excel_report import build_excel_report
 
 # ⬇️ استيرادات مشروعك الفعلي
-from crawlers import ADECrawler, ONACrawler, AlgeriaTendersCrawler
+from crawlers import ADECrawler, AlgeriaTendersCrawler, ONACrawler
+from notifications.base import NotificationManager
+from notifications.excel_report import build_excel_report
+from notifications.telegram_channel import TelegramChannel
 from tender_filter import TenderFilter
 
 load_dotenv()
@@ -50,10 +50,12 @@ def apply_filter(tenders: list[dict]) -> list[dict]:
 
 def build_notifier() -> NotificationManager:
     notifier = NotificationManager()
-    notifier.register(TelegramChannel(
-        os.environ["TELEGRAM_BOT_TOKEN"],
-        os.environ["TELEGRAM_CHAT_ID"],
-    ))
+    notifier.register(
+        TelegramChannel(
+            os.environ["TELEGRAM_BOT_TOKEN"],
+            os.environ["TELEGRAM_CHAT_ID"],
+        )
+    )
     return notifier
 
 

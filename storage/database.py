@@ -3,12 +3,11 @@ storage/database.py
 قاعدة بيانات SQLite لتتبع المناقصات ومنع التكرار
 """
 
-import sqlite3
+import hashlib
 import logging
 import os
-import hashlib
+import sqlite3
 from datetime import datetime
-from typing import List, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -61,16 +60,18 @@ class TenderDatabase:
         logger.info(f"✅ قاعدة البيانات جاهزة: {self.db_path}")
 
     @staticmethod
-    def _fingerprint(tender: Dict) -> str:
+    def _fingerprint(tender: dict) -> str:
         """بصمة فريدة لكل مناقصة لمنع التكرار"""
-        raw = "|".join([
-            str(tender.get("title", "")).strip().lower(),
-            str(tender.get("organisation", "")).strip().lower(),
-            str(tender.get("link", "")).strip().lower(),
-        ])
+        raw = "|".join(
+            [
+                str(tender.get("title", "")).strip().lower(),
+                str(tender.get("organisation", "")).strip().lower(),
+                str(tender.get("link", "")).strip().lower(),
+            ]
+        )
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
-    def add_tender(self, tender: Dict) -> bool:
+    def add_tender(self, tender: dict) -> bool:
         """إضافة مناقصة. Returns True إذا كانت جديدة، False إذا مكررة."""
         fp = self._fingerprint(tender)
         now = datetime.now().isoformat()
@@ -79,9 +80,7 @@ class TenderDatabase:
         families_str = ",".join([f["id"] for f in families]) if families else ""
 
         with self._connect() as conn:
-            cur = conn.execute(
-                "SELECT id FROM tenders WHERE fingerprint = ?", (fp,)
-            )
+            cur = conn.execute("SELECT id FROM tenders WHERE fingerprint = ?", (fp,))
             existing = cur.fetchone()
 
             if existing:
@@ -118,36 +117,30 @@ class TenderDatabase:
             conn.commit()
             return True
 
-    def mark_notified(self, tender: Dict):
+    def mark_notified(self, tender: dict):
         """تحديد المناقصة كـ 'تم إشعارها'"""
         fp = self._fingerprint(tender)
         with self._connect() as conn:
-            conn.execute(
-                "UPDATE tenders SET notified = 1 WHERE fingerprint = ?", (fp,)
-            )
+            conn.execute("UPDATE tenders SET notified = 1 WHERE fingerprint = ?", (fp,))
             conn.commit()
 
-    def is_notified(self, tender: Dict) -> bool:
+    def is_notified(self, tender: dict) -> bool:
         """هل تم إشعار المستخدم بهذه المناقصة؟"""
         fp = self._fingerprint(tender)
         with self._connect() as conn:
-            cur = conn.execute(
-                "SELECT notified FROM tenders WHERE fingerprint = ?", (fp,)
-            )
+            cur = conn.execute("SELECT notified FROM tenders WHERE fingerprint = ?", (fp,))
             row = cur.fetchone()
             return bool(row and row["notified"])
 
-    def get_new_tenders(self, tenders: List[Dict]) -> List[Dict]:
+    def get_new_tenders(self, tenders: list[dict]) -> list[dict]:
         """إرجاع المناقصات الجديدة فقط"""
         return [t for t in tenders if not self.is_notified(t)]
 
-    def stats(self) -> Dict:
+    def stats(self) -> dict:
         """إحصائيات سريعة"""
         with self._connect() as conn:
             total = conn.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
-            notified = conn.execute(
-                "SELECT COUNT(*) FROM tenders WHERE notified = 1"
-            ).fetchone()[0]
+            notified = conn.execute("SELECT COUNT(*) FROM tenders WHERE notified = 1").fetchone()[0]
 
             today = datetime.now().strftime("%Y-%m-%d")
             today_count = conn.execute(
