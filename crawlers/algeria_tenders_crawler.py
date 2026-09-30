@@ -6,7 +6,7 @@ import requests
 import urllib3
 from bs4 import BeautifulSoup
 
-from .base_crawler import BaseCrawler
+from .base_crawler import BaseCrawler, sanitize_url
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -18,7 +18,7 @@ class AlgeriaTendersCrawler(BaseCrawler):
     """
 
     def __init__(self, base_url="https://algeriemarches.com"):
-        super().__init__(base_url)
+        super().__init__(sanitize_url(base_url))
         # كلمات مفتاحية مع مراعاة الاختلافات اللغوية
         self.keywords = [
             "pvc",
@@ -89,7 +89,7 @@ class AlgeriaTendersCrawler(BaseCrawler):
                     else (href if isinstance(href, str) else self.base_url)
                 )
 
-                full_link = urljoin(self.base_url, link)
+                full_link = sanitize_url(urljoin(self.base_url, link)) or self.base_url
 
                 tenders.append(
                     {

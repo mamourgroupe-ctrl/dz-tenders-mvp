@@ -1,0 +1,142 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-09-30",
+  "categories": {
+    "government": {
+      "priority": 1,
+      "description": "المواقع الحكومية الرسمية - الأولوية القصوى",
+      "sources": [
+        {
+          "id": "marches_publics",
+          "name": "البوابة الإلكترونية للصفقات العمومية",
+          "url": "https://www.marches-publics.gov.dz",
+          "crawler_module": "crawlers.government.marches_publics",
+          "crawler_class": "MarchesPublicsCrawler",
+          "enabled": true,
+          "rate_limit_seconds": 2,
+          "requires_js": false
+        },
+        {
+          "id": "bomop",
+          "name": "النشرة الرسمية لصفقات المتعامل العمومي",
+          "url": "https://bomop.anep.dz",
+          "crawler_module": "crawlers.government.bomop",
+          "crawler_class": "BomopCrawler",
+          "enabled": true,
+          "rate_limit_seconds": 2,
+          "requires_js": false
+        },
+        {
+          "id": "safqatic",
+          "name": "بوابة الصفقات لقطاع البريد والاتصالات",
+          "url": "https://www.safqatic.dz",
+          "crawler_module": "crawlers.government.safqatic",
+          "crawler_class": "SafqaticCrawler",
+          "enabled": true,
+          "rate_limit_seconds": 2,
+          "requires_js": false
+        }
+      ]
+    },
+    "companies": {
+      "priority": 2,
+      "description": "المؤسسات والشركات الكبرى",
+      "sources": [
+        {
+          "id": "sonelgaz",
+          "name": "سونلغاز",
+          "url": "https://www.baosem.com",
+          "crawler_module": "crawlers.companies.sonelgaz",
+          "crawler_class": "SonelgazCrawler",
+          "enabled": true,
+          "rate_limit_seconds": 5,
+          "requires_js": true,
+          "requires_auth": true
+        },
+        {
+          "id": "cttp",
+          "name": "الوكالة الوطنية للتحكم التقني في البناء",
+          "url": "https://www.cttp.dz",
+          "crawler_module": "crawlers.companies.cttp",
+          "crawler_class": "CttpCrawler",
+          "enabled": true,
+          "rate_limit_seconds": 2,
+          "requires_js": false
+        }
+      ]
+    },
+    "newspapers": {
+      "priority": 3,
+      "description": "الجرائد اليومية الجزائرية",
+      "sources": [
+        {
+          "id": "elkhabar",
+          "name": "الخبر",
+          "url": "https://www.elkhabar.com",
+          "crawler_module": "crawlers.newspapers.elkhabar",
+          "crawler_class": "ElKhabarCrawler",
+          "enabled": true,
+          "rate_limit_seconds": 3,
+          "requires_js": false,
+          "search_url_pattern": "/recherche/?q={query}"
+        },
+        {
+          "id": "echorouk",
+          "name": "الشروق",
+          "url": "https://www.echoroukonline.com",
+          "crawler_module": "crawlers.newspapers.echorouk",
+          "crawler_class": "EchoroukCrawler",
+          "enabled": true,
+          "rate_limit_seconds": 3,
+          "requires_js": false,
+          "search_url_pattern": "/?s={query}"
+        },
+        {
+          "id": "elwatan",
+          "name": "الوطن",
+          "url": "https://www.elwatan.com",
+          "crawler_module": "crawlers.newspapers.elwatan",
+          "crawler_class": "ElWatanCrawler",
+          "enabled": true,
+          "rate_limit_seconds": 3,
+          "requires_js": false,
+          "search_url_pattern": "/?s={query}"
+        }
+      ]
+    },
+    "wilayas": {
+      "priority": 4,
+      "description": "مواقع الولايات - قابلة للتوليد تلقائياً",
+      "template": {
+        "url_pattern": "https://www.wilaya-{slug}.dz",
+        "crawler_module": "crawlers.wilayas.generic_wilaya",
+        "crawler_class": "GenericWilayaCrawler"
+      },
+      "priority_wilayas": [
+        { "slug": "djelfa", "name": "الجلفة" },
+        { "slug": "guelma", "name": "قالمة" },
+        { "slug": "ouargla", "name": "ورقلة" },
+        { "slug": "biskra", "name": "بسكرة" },
+        { "slug": "ghardaia", "name": "غرداية" },
+        { "slug": "adrar", "name": "أدرار" },
+        { "slug": "eloued", "name": "الوادي" }
+      ]
+    },
+    "aggregators": {
+      "priority": 5,
+      "description": "منصات تجميع المناقصات (للمقارنة فقط)",
+      "sources": [
+        {
+          "id": "dztenders",
+          "name": "DZtenders",
+          "url": "https://www.dztenders.com",
+          "crawler_module": "crawlers.aggregators.dztenders",
+          "crawler_class": "DzTendersCrawler",
+          "enabled": false,
+          "rate_limit_seconds": 5,
+          "requires_js": true
+        }
+      ]
+    }
+  }
+}

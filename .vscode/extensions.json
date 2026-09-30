@@ -1,27 +1,15 @@
 {
   "recommendations": [
-    "ms-python.python",
-    "ms-python.vscode-pylance",
-    "ms-python.debugpy",
-    "ms-python.vscode-python-envs",
-    "charliermarsh.ruff",
-    "eamodio.gitlens",
-    "github.vscode-github-actions",
-    "davidanson.vscode-markdownlint",
-    "ms-azuretools.vscode-containers",
-    "ms-vscode-remote.remote-containers",
-    "rangav.vscode-thunder-client",
-    "ritwickdey.liveserver",
-    "sonarsource.sonarlint-vscode",
-    "pkief.material-icon-theme"
-  ],
-  "unwantedRecommendations": [
-    "dart-code.dart-code",
-    "dart-code.flutter",
-    "redhat.java",
-    "vscjava.vscode-java-debug",
-    "vscjava.vscode-java-test",
-    "ms-dotnettools.vscode-dotnet-runtime",
-    "ms-vscode.cpptools"
+    "GitHub.copilot",
+    "GitHub.copilot-chat",
+    "saoudrizwan.claude-dev",
+    "anthropic.claude-code",
+    "Continue.continue",
+    "SonarSource.sonarlint-vscode",
+    "Codium.codium",
+    "snyk-security.snyk-vulnerability-scanner",
+    "Semgrep.semgrep",
+    "Upstash.context7-mcp",
+    "kilocode.Kilo-Code"
   ]
 }

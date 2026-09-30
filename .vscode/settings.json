@@ -13,5 +13,7 @@
   ],
   "workbench.colorCustomizations": {},
   "qwen-code.provider": "api-key",
-  "claudeCode.hideOnboarding": true
+  "claudeCode.hideOnboarding": true,
+  "semgrep.scanOnSave": true,
+  "chat.mcp.access": "all"
 }

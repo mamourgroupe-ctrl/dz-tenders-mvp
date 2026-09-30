@@ -11,7 +11,7 @@ import requests
 import urllib3
 from bs4 import BeautifulSoup
 
-from .base_crawler import BaseCrawler
+from .base_crawler import BaseCrawler, sanitize_url
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -55,7 +55,7 @@ class SmartCrawler(BaseCrawler):
     ]
 
     def __init__(self, source_name: str, base_url: str, priority: str = "1"):
-        super().__init__(base_url)
+        super().__init__(sanitize_url(base_url))
         self.source_name = source_name
         self.priority = priority
 
@@ -106,7 +106,9 @@ class SmartCrawler(BaseCrawler):
             if href.startswith("javascript") or href == "#":
                 continue
 
-            full_link = urljoin(self.base_url, href)
+            full_link = sanitize_url(urljoin(self.base_url, href))
+            if not full_link:
+                continue
             if full_link in seen:
                 continue
             seen.add(full_link)

@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 
-from .base_crawler import BaseCrawler
+from .base_crawler import BaseCrawler, sanitize_url
 
 
 class ONACrawler(BaseCrawler):
@@ -14,7 +14,7 @@ class ONACrawler(BaseCrawler):
     """
 
     def __init__(self, base_url="https://www.ona.dz"):
-        super().__init__(base_url)
+        super().__init__(sanitize_url(base_url))
         self.keywords = [
             "pvc",
             "pehd",
@@ -62,7 +62,7 @@ class ONACrawler(BaseCrawler):
                 if any(kw in norm_text for kw in self.keywords) and len(text) > 15:
                     href = link.get("href", "")
                     if href and not href.startswith("javascript") and href != "#":
-                        full_link = urljoin(self.base_url, href)
+                        full_link = sanitize_url(urljoin(self.base_url, href)) or self.base_url
                     else:
                         full_link = self.base_url
 
