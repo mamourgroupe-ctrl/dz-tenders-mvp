@@ -1,61 +1,17 @@
 {
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
-  "python.envFile": "${workspaceFolder}/.env",
-  "python.analysis.typeCheckingMode": "basic",
-
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.ruff": "explicit",
-    "source.organizeImports.ruff": "explicit"
-  },
-
-  "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff"
-  },
-
-  "ruff.lineLength": 100,
-  "ruff.importStrategy": "fromEnvironment",
-
-  "files.exclude": {
-    "**/__pycache__": true,
-    "**/.pytest_cache": true,
-    "**/.mypy_cache": true,
-    "**/.ruff_cache": true,
-    "**/.venv": false
-  },
-
-  "search.exclude": {
-    "**/.venv": true,
-    "**/__pycache__": true,
-    "**/.pytest_cache": true,
-    "**/.mypy_cache": true,
-    "**/.ruff_cache": true,
-    "**/logs": true,
-    "**/storage": true
-  },
-
-  "files.watcherExclude": {
-    "**/.venv/**": true,
-    "**/__pycache__/**": true,
-    "**/.pytest_cache/**": true,
-    "**/.ruff_cache/**": true,
-    "**/storage/**": true,
-    "**/logs/**": true
-  },
-
-  "terminal.integrated.env.windows": {
-    "PYTHONUTF8": "1"
-  },
-
-  "git.autofetch": true,
-  "git.confirmSync": false,
-  "python.testing.unittestArgs": [
-    "-v",
-    "-s",
-    ".",
-    "-p",
-    "*test.py"
+  "kilocode.enableAutoComplete": true,
+  "kilocode.enableInlineChat": true,
+  "kilocode.enableCodeActions": true,
+  "kilo-code.new.autocomplete.enableSmartInlineTaskKeybinding": true,
+  "snyk.advanced.cliPath": "C:\\Users\\pc\\AppData\\Local\\snyk\\vscode-cli\\snyk-win.exe",
+  "kilo-code.new.agentWorkStyle": "skipped",
+  "terminal.integrated.commandsToSkipShell": [
+    "kilo-code.new.agentManagerOpen",
+    "kilo-code.new.agentManager.showTerminal",
+    "kilo-code.new.agentManager.previousTerminal",
+    "kilo-code.new.agentManager.nextTerminal"
   ],
-  "python.testing.pytestEnabled": false,
-  "python.testing.unittestEnabled": true
+  "workbench.colorCustomizations": {},
+  "qwen-code.provider": "api-key",
+  "claudeCode.hideOnboarding": true
 }
