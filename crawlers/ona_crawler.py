@@ -89,6 +89,8 @@ class ONACrawler(BaseCrawler):
                     "deadline": "2026-08-28",
                     "status": "مفتوحة",
                     "link": "https://www.ona.dz/tenders/pvc-2026",
+                    "is_sample": True,
+                    "source_status": "reference",
                 }
             ]
 

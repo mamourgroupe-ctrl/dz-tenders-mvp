@@ -1,6 +1,9 @@
 from unittest.mock import patch
 
-from main import apply_filter, build_summary_message
+from crawlers.algeria_tenders_crawler import AlgeriaTendersCrawler
+from crawlers.marches_publics_crawler import MarchesPublicsCrawler
+from crawlers.ona_crawler import ONACrawler
+from main import apply_filter, build_summary_message, drop_reference_data
 
 
 def test_apply_filter():
@@ -139,3 +142,67 @@ def test_build_summary_message_empty_list():
     assert "📋 0 مناقصة جديدة:" in result
     assert "\n━━━━━━━━━━━━━━━━━━" in result
     assert result.strip().endswith("━━━━━━━━━━━━━━━━━━")
+
+
+def test_drop_reference_data_removes_samples_by_default():
+    """البيانات المرجعية تُحذف افتراضياً حتى لا تُبلَّغ كصفقات حقيقية."""
+    tenders = [
+        {"title": "حية", "is_sample": False},
+        {"title": "مرجعية", "is_sample": True, "source_status": "reference"},
+        {"title": "بلا وسم"},
+    ]
+
+    result = drop_reference_data(tenders)
+
+    assert [t["title"] for t in result] == ["حية", "بلا وسم"]
+
+
+def test_drop_reference_data_keeps_samples_when_explicitly_enabled():
+    """تضمين البيانات المرجعية ممكن عبر include_samples صراحةً."""
+    tenders = [{"title": "مرجعية", "is_sample": True}]
+
+    assert drop_reference_data(tenders, include_samples=True) == tenders
+
+
+def test_drop_reference_data_does_not_mutate_input():
+    """الدالة لا تعدّل القائمة الأصلية."""
+    tenders = [{"title": "مرجعية", "is_sample": True}]
+
+    drop_reference_data(tenders)
+
+    assert tenders == [{"title": "مرجعية", "is_sample": True}]
+
+
+def test_reference_tenders_are_flagged(monkeypatch):
+    """كل البيانات المرجعية في الزواحف موسومة is_sample و source_status."""
+    ona = ONACrawler()
+    monkeypatch.setattr(ona, "fetch_page", lambda url: "<html></html>")
+    algeria = AlgeriaTendersCrawler()
+    monkeypatch.setattr(algeria, "fetch_page", lambda url: "<html></html>")
+
+    batches = [
+        ona.run(),
+        algeria.run(),
+        MarchesPublicsCrawler().run(),
+    ]
+
+    assert batches[0] and batches[1] and batches[2]
+    for tender in [t for batch in batches for t in batch]:
+        assert tender["is_sample"] is True, tender["title"]
+        assert tender["source_status"] == "reference", tender["title"]
+
+
+def test_is_sample_flag_survives_filtering():
+    """وسم البيانات المرجعية ينجو من مرحلة الفلترة قبل الوصول إلى التنبيه."""
+    samples = [
+        {
+            "title": "Acquisition de tuyaux PVC assainissement CR8 DN 200/315",
+            "is_sample": True,
+        }
+    ]
+
+    filtered = apply_filter(samples)
+
+    assert len(filtered) == 1
+    assert filtered[0]["is_sample"] is True
+    assert filtered[0]["matched_families"]

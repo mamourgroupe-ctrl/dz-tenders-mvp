@@ -1,6 +1,6 @@
 import logging
 
-from .base_crawler import BaseCrawler
+from .base_crawler import BaseCrawler, sanitize_url
 
 
 class MarchesPublicsCrawler(BaseCrawler):
@@ -12,7 +12,7 @@ class MarchesPublicsCrawler(BaseCrawler):
     """
 
     def __init__(self, base_url="https://www.marches-publics.gov.dz"):
-        super().__init__(base_url)
+        super().__init__(sanitize_url(base_url))
         self.keywords = [
             "pvc",
             "pehd",
@@ -40,7 +40,9 @@ class MarchesPublicsCrawler(BaseCrawler):
                 "product": "PEHD Pipes",
                 "deadline": "2026-10-30",
                 "status": "مفتوحة",
-                "link": "https://www.marches-publics.gov.dz",
+                "link": sanitize_url("https://www.marches-publics.gov.dz"),
+                "is_sample": True,
+                "source_status": "reference",
             }
         ]
         logging.info(f"تم العثور على {len(tenders)} مناقصة.")

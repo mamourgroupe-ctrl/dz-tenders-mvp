@@ -110,9 +110,9 @@ class AlgeriaTendersCrawler(BaseCrawler):
         html = self.fetch_page(self.base_url)
         results = self.parse_tenders(html) if html else []
 
-        # في حال عدم وجود نتائج حية، يتم استخدام صفقات تجريبية بروابط حقيقية تجنباً لخطأ 404
+        # في حال عدم وجود نتائج حية، تُوسم الصفقات التجريبية بوضوح حتى لا تُعرض كصفقات حقيقية
         if not results:
-            logging.info("تفعيل الصفقات المرجعية (بروابط حقيقية)...")
+            logging.info("لا نتائج حية: تُعاد بيانات مرجعية موسومة is_sample=True.")
             results = [
                 {
                     "title": "Acquisition de tuyaux et tubes en PEHD pour le réseau d'eau potable",
@@ -122,6 +122,8 @@ class AlgeriaTendersCrawler(BaseCrawler):
                     "deadline": "2026-08-30",
                     "status": "مفتوحة",
                     "link": "https://www.ade.dz",  # ✅ رابط شغال 100%
+                    "is_sample": True,
+                    "source_status": "reference",
                 },
                 {
                     "title": "Fourniture de conduites PVC et raccords assainissement DN 250/315",
@@ -131,6 +133,8 @@ class AlgeriaTendersCrawler(BaseCrawler):
                     "deadline": "2026-08-25",
                     "status": "مفتوحة",
                     "link": "https://www.ona.dz",  # ✅ رابط شغال 100%
+                    "is_sample": True,
+                    "source_status": "reference",
                 },
                 {
                     "title": (
@@ -142,6 +146,8 @@ class AlgeriaTendersCrawler(BaseCrawler):
                     "deadline": "2026-09-05",
                     "status": "مفتوحة",
                     "link": self.base_url,  # ✅ رابط رئيسي شغال
+                    "is_sample": True,
+                    "source_status": "reference",
                 },
             ]
 

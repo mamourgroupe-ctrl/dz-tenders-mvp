@@ -1,9 +1,10 @@
 import logging
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
 
-from .base_crawler import BaseCrawler
+from .base_crawler import BaseCrawler, sanitize_url
 
 
 class ADECrawler(BaseCrawler):
@@ -12,7 +13,7 @@ class ADECrawler(BaseCrawler):
     """
 
     def __init__(self, base_url="https://www.ade.dz"):
-        super().__init__(base_url)
+        super().__init__(sanitize_url(base_url))
 
     def fetch_page(self, url):
         try:
@@ -25,6 +26,14 @@ class ADECrawler(BaseCrawler):
             return None
 
     def parse_tenders(self, html_content):
+        """استخراج المناقصات من HTML مع تنظيف رابط كل صفقة.
+
+        Args:
+            html_content: محتوى الصفحة بعد الجلب.
+
+        Returns:
+            قائمة من القواميس تضم ``title`` و``date`` و``link`` المنقّى.
+        """
         if not html_content:
             return []
 
@@ -34,11 +43,17 @@ class ADECrawler(BaseCrawler):
         for item in soup.find_all("div", class_="tender-item"):
             title_elem = item.find("h3") or item.find("a")
             date_elem = item.find("span", class_="date")
+            anchor = item.find("a", href=True)
+
+            link = sanitize_url(urljoin(self.base_url, anchor["href"])) if anchor else self.base_url
+            if not link:
+                continue
 
             tenders.append(
                 {
                     "title": title_elem.text.strip() if title_elem else "بدون عنوان",
                     "date": date_elem.text.strip() if date_elem else "غير محدد",
+                    "link": link,
                 }
             )
 

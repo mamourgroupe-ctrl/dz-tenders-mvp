@@ -58,6 +58,31 @@ def scrape_all_sources() -> list[dict]:
     return unique
 
 
+def drop_reference_data(tenders: list[dict], include_samples: bool = False) -> list[dict]:
+    """حذف البيانات المرجعية (المُلفّقة) إلا عند طلب تضمينها صراحةً.
+
+    Args:
+        tenders: المناقصات المجمّعة من كل الزواحف.
+        include_samples: عند True تُعاد البيانات المرجعية كما هي.
+
+    Returns:
+        قائمة المناقصات الحية فقط عند include_samples=False.
+    """
+    if include_samples:
+        logger.warning("INCLUDE_SAMPLES=true: سيتم إبلاغ المستخدم ببيانات مرجعية غير حقيقية")
+        return list(tenders)
+
+    kept = [t for t in tenders if not t.get("is_sample")]
+    dropped = len(tenders) - len(kept)
+    if dropped:
+        logger.warning(
+            "تم استبعاد %d مناقصة مرجعية (بيانات تجريبية غير حقيقية) — "
+            "اضبط INCLUDE_SAMPLES=true لتضمينها",
+            dropped,
+        )
+    return kept
+
+
 def apply_filter(tenders: list[dict]) -> list[dict]:
     """تطبيق فلترة العائلات التسويقية."""
     filter_obj = TenderFilter()
@@ -108,8 +133,11 @@ def run():
     all_tenders = scrape_all_sources()
     logger.info(f"تم جلب {len(all_tenders)} مناقصة فريدة")
 
+    live_tenders = drop_reference_data(all_tenders, include_samples=config.include_samples)
+    logger.info(f"تبقّى {len(live_tenders)} مناقصة بعد استبعاد البيانات المرجعية")
+
     logger.info("🔍 تطبيق فلترة العائلات التسويقية...")
-    filtered = apply_filter(all_tenders)
+    filtered = apply_filter(live_tenders)
     logger.info(f"تبقّى {len(filtered)} مناقصة بعد الفلترة")
 
     logger.info("🧠 التحقق من المناقصات الجديدة...")

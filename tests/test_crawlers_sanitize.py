@@ -1,7 +1,9 @@
 from urllib.parse import urljoin
 
+from crawlers.ade_crawler import ADECrawler
 from crawlers.algeria_tenders_crawler import AlgeriaTendersCrawler
 from crawlers.base_crawler import sanitize_url
+from crawlers.marches_publics_crawler import MarchesPublicsCrawler
 from crawlers.ona_crawler import ONACrawler
 from crawlers.smart_crawler import SmartCrawler
 
@@ -19,6 +21,19 @@ ALGERIA_HTML = (
     f'<a href="{ALGERIA_RAW_HREF}">'
     "Fourniture de tuyaux PVC et raccords pour le reseau d'assainissement"
     "</a>"
+)
+
+ADE_RAW_HREF = "/appels d'offres/  tuyaux pvc  "
+ADE_HTML = (
+    '<div class="tender-item">'
+    "<h3>Fourniture de tuyaux PVC</h3>"
+    f'<a href="{ADE_RAW_HREF}">detail</a>'
+    '<span class="date">2026-10-01</span>'
+    "</div>"
+    '<div class="tender-item">'
+    '<a href="javascript:void(0)">Fourniture de conduites PVC</a>'
+    '<span class="date">2026-10-02</span>'
+    "</div>"
 )
 
 
@@ -60,3 +75,38 @@ def test_algeria_tenders_crawler_passes_links_through_sanitize_url():
 
     assert len(tenders) == 1
     _assert_is_sanitized(tenders[0]["link"], crawler.base_url, ALGERIA_RAW_HREF)
+
+
+def test_ade_crawler_passes_links_through_sanitize_url():
+    """رابط ADE يُنظَّف، والصفقة التي رابطها javascript تُحذف كلياً."""
+    crawler = ADECrawler()
+
+    tenders = crawler.parse_tenders(ADE_HTML)
+
+    assert len(tenders) == 1
+    assert tenders[0]["title"] == "Fourniture de tuyaux PVC"
+    _assert_is_sanitized(tenders[0]["link"], crawler.base_url, ADE_RAW_HREF)
+
+
+def test_ade_crawler_falls_back_to_base_url_when_item_has_no_link():
+    """صفقة ADE بلا رابط تأخذ رابط المصدر النظيف بدل رابط فارغ."""
+    crawler = ADECrawler()
+    html = '<div class="tender-item"><h3>Fourniture de citernes</h3></div>'
+
+    tenders = crawler.parse_tenders(html)
+
+    assert len(tenders) == 1
+    assert tenders[0]["link"] == crawler.base_url
+
+
+def test_marches_publics_crawler_sanitizes_base_url_and_reference_link():
+    """رابط المصدر ورابط البيانات المرجعية يمرّان على sanitize_url."""
+    crawler = MarchesPublicsCrawler("https://www.marches-publics.gov.dz//  ")
+
+    assert crawler.base_url == "https://www.marches-publics.gov.dz/"
+
+    tenders = crawler.run()
+
+    assert len(tenders) == 1
+    assert tenders[0]["link"] == sanitize_url(tenders[0]["link"])
+    assert " " not in tenders[0]["link"]
