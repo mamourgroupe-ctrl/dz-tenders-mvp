@@ -89,12 +89,27 @@ def apply_filter(tenders: list[dict]) -> list[dict]:
     return filter_obj.filter_tenders(tenders)
 
 
-def build_notifier() -> NotificationManager:
+def build_notifier(config: AppConfig) -> NotificationManager | None:
+    """بناء مُرسِل تلغرام من الإعدادات، أو None إذا كانت ناقصة.
+
+    Args:
+        config: إعدادات التطبيق المحمّلة من متغيرات البيئة.
+
+    Returns:
+        NotificationManager جاهز، أو None عند غياب التوكن أو معرّف المحادثة.
+    """
+    if not config.is_telegram_configured:
+        logger.warning(
+            "إعدادات Telegram غير مكتملة — تم تعطيل الإرسال "
+            "(مطلوب TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID)"
+        )
+        return None
+
     notifier = NotificationManager()
     notifier.register(
         TelegramChannel(
-            os.environ["TELEGRAM_BOT_TOKEN"],
-            os.environ["TELEGRAM_CHAT_ID"],
+            config.telegram_bot_token,
+            config.telegram_chat_id,
         )
     )
     return notifier
@@ -127,7 +142,10 @@ def run():
     logger.info("=" * 60)
 
     store = TenderStore(db_path=config.db_path)
-    notifier = build_notifier()
+
+    notifier = None
+    if not dry_run:
+        notifier = build_notifier(config)
 
     logger.info("📥 بدء الزحف...")
     all_tenders = scrape_all_sources()
@@ -156,12 +174,15 @@ def run():
         logger.warning("DRY_RUN=true: skipping Telegram send")
         logger.info("DRY_RUN report path: %s", excel_path)
     else:
-        logger.info("📤 جاري الإرسال إلى تلغرام...")
-        results = notifier.broadcast(summary, filepath=excel_path)
-        logger.info(f"نتائج الإرسال: {results}")
+        if notifier is None:
+            logger.warning("تجاوز الإرسال: لا يوجد مُرسِل مُهيّأ")
+        else:
+            logger.info("📤 جاري الإرسال إلى تلغرام...")
+            results = notifier.broadcast(summary, filepath=excel_path)
+            logger.info(f"نتائج الإرسال: {results}")
 
-        for tender in new_or_changed:
-            store.mark_notified(tender)
+            for tender in new_or_changed:
+                store.mark_notified(tender)
     logger.info(f"📊 إجمالي المناقصات المسجلة: {store.count()}")
     store.close()
     logger.info("=" * 60)

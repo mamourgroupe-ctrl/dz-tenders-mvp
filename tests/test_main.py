@@ -1,9 +1,50 @@
 from unittest.mock import patch
 
+import main
+from config import AppConfig
 from crawlers.algeria_tenders_crawler import AlgeriaTendersCrawler
 from crawlers.marches_publics_crawler import MarchesPublicsCrawler
 from crawlers.ona_crawler import ONACrawler
-from main import apply_filter, build_summary_message, drop_reference_data
+from main import apply_filter, build_notifier, build_summary_message, drop_reference_data
+
+LIVE_TENDER = {"title": "مناقصة توريد أنابيب PEHD", "link": "https://ade.dz/a"}
+
+
+class FakeStore:
+    """بديل خفيف لقاعدة البيانات يمنع أي كتابة على القرص أثناء الاختبار."""
+
+    instances: list["FakeStore"] = []
+
+    def __init__(self, db_path=None):
+        self.db_path = db_path
+        self.marked: list[dict] = []
+        self.closed = False
+        FakeStore.instances.append(self)
+
+    def is_new_or_changed(self, tender):
+        return True
+
+    def count(self):
+        return 0
+
+    def mark_notified(self, tender):
+        self.marked.append(tender)
+
+    def close(self):
+        self.closed = True
+
+
+def _patch_run(monkeypatch, config: AppConfig):
+    """يثبّت خط التشغيل بلا شبكة ولا ملف Excel."""
+    FakeStore.instances.clear()
+    monkeypatch.setattr(
+        main.AppConfig, "from_env", classmethod(lambda cls, load_env_file=True: config)
+    )
+    monkeypatch.setattr(main, "TenderStore", FakeStore)
+    monkeypatch.setattr(main, "scrape_all_sources", lambda: [dict(LIVE_TENDER)])
+    monkeypatch.setattr(main, "apply_filter", lambda tenders: list(tenders))
+    monkeypatch.setattr(main, "build_excel_report", lambda tenders: "report.xlsx")
+    monkeypatch.setattr(main, "setup_logging", lambda level: None)
 
 
 def test_apply_filter():
@@ -206,3 +247,55 @@ def test_is_sample_flag_survives_filtering():
     assert len(filtered) == 1
     assert filtered[0]["is_sample"] is True
     assert "relevance_score" in filtered[0]
+
+
+def test_build_notifier_returns_none_without_token():
+    """غياب التوكن يعيد None بدل KeyError."""
+    config = AppConfig(dry_run=False, telegram_bot_token=None, telegram_chat_id="123")
+
+    assert build_notifier(config) is None
+
+
+def test_build_notifier_returns_none_without_chat_id():
+    """غياب معرّف المحادثة يعيد None أيضاً."""
+    config = AppConfig(dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id=None)
+
+    assert build_notifier(config) is None
+
+
+def test_build_notifier_returns_manager_when_configured():
+    """الإعداد الكامل يعيد مُرسّلاً مسجّلاً عليه قناة تلغرام."""
+    config = AppConfig(dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id="42")
+
+    notifier = build_notifier(config)
+
+    assert notifier is not None
+    assert [ch.name for ch in notifier.channels] == ["TelegramChannel"]
+
+
+def test_run_completes_in_dry_run_without_token(monkeypatch):
+    """التشغيل في وضع Dry-Run يكتمل بلا توكن ولا استدعاء للمُرسِل."""
+    config = AppConfig(dry_run=True, telegram_bot_token=None, telegram_chat_id=None)
+    _patch_run(monkeypatch, config)
+
+    def _fail_if_called(cfg):
+        raise AssertionError("يجب ألا يُبنى المُرسِل في وضع Dry-Run")
+
+    monkeypatch.setattr(main, "build_notifier", _fail_if_called)
+
+    main.run()
+
+    assert FakeStore.instances[0].closed is True
+    assert FakeStore.instances[0].marked == []
+
+
+def test_run_skips_send_when_notifier_none(monkeypatch):
+    """غياب الإعدادات مع dry_run=False يتخطّى الإرسال بدل الانهيار."""
+    config = AppConfig(dry_run=False, telegram_bot_token=None, telegram_chat_id=None)
+    _patch_run(monkeypatch, config)
+    monkeypatch.setattr(main, "build_notifier", lambda cfg: None)
+
+    main.run()
+
+    assert FakeStore.instances[0].closed is True
+    assert FakeStore.instances[0].marked == []

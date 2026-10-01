@@ -5,9 +5,30 @@ notifications/base.py
 """
 
 import logging
+import os
+import re
 from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
+
+BOT_TOKEN_PATTERN = re.compile(r"\b\d{6,}:[A-Za-z0-9_-]{20,}")
+SECRET_KEY_HINTS = ("TOKEN", "SECRET", "KEY", "PASSWORD", "PASSPHRASE")
+
+
+def redact_secrets(text: str) -> str:
+    """إخفاء التوكنات وقيم المتغيّرات السرّية من نص قد يُسجَّل أو يُعاد.
+
+    Args:
+        text: الرسالة الأصلية.
+
+    Returns:
+        النص بعد استبدال أي قيمة سرّية بعلامة ``<redacted>``.
+    """
+    redacted = BOT_TOKEN_PATTERN.sub("<redacted>", str(text))
+    for key, value in os.environ.items():
+        if any(hint in key.upper() for hint in SECRET_KEY_HINTS) and len(value) >= 8:
+            redacted = redacted.replace(value, "<redacted>")
+    return redacted
 
 
 class NotificationChannel(ABC):
@@ -51,6 +72,14 @@ class NotificationManager:
                     }
                 )
             except Exception as e:
-                logger.error(f"❌ فشل الإرسال عبر {ch.name}: {e}")
-                results.append({"channel": ch.name, "error": str(e)})
+                error_type = type(e).__name__
+                logger.error(
+                    f"❌ فشل الإرسال عبر {ch.name}: {error_type}: {redact_secrets(str(e))}"
+                )
+                results.append(
+                    {
+                        "channel": ch.name,
+                        "error": f"{error_type}: {redact_secrets(str(e))}",
+                    }
+                )
         return results

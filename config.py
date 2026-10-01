@@ -31,6 +31,11 @@ class AppConfig:
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
 
+    @property
+    def is_telegram_configured(self) -> bool:
+        """هل إعداد تلغرام مكتمل بما يكفي للإرسال؟"""
+        return bool(self.telegram_bot_token and self.telegram_chat_id)
+
     @classmethod
     def from_env(cls, load_env_file: bool = True) -> "AppConfig":
         """Build config from environment variables."""
