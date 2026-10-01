@@ -205,4 +205,4 @@ def test_is_sample_flag_survives_filtering():
 
     assert len(filtered) == 1
     assert filtered[0]["is_sample"] is True
-    assert filtered[0]["matched_families"]
+    assert "relevance_score" in filtered[0]
