@@ -1,4 +1,7 @@
+import sys
 from unittest.mock import patch
+
+import pytest
 
 import main
 from config import AppConfig
@@ -20,6 +23,7 @@ class FakeStore:
         self.marked: list[dict] = []
         self.saved: list[dict] = []
         self.failed: list[dict] = []
+        self.failed_attempt_error = ""
         self.closed = False
         FakeStore.instances.append(self)
 
@@ -41,6 +45,7 @@ class FakeStore:
 
     def register_failed_attempt(self, tender, error=""):
         self.failed.append(tender)
+        self.failed_attempt_error = error
         return len(self.failed)
 
     def close(self):
@@ -312,3 +317,153 @@ def test_run_skips_send_when_notifier_none(monkeypatch):
 
     assert FakeStore.instances[0].closed is True
     assert FakeStore.instances[0].marked == []
+
+
+class FakeNotifier:
+    """مُرسِل يُعيد نتائج جاهزة بدل الاتصال بتلغرام."""
+
+    def __init__(self, results):
+        self.results = results
+        self.broadcast_calls: list[str] = []
+
+    def broadcast(self, message, filepath=None):
+        self.broadcast_calls.append(message)
+        return self.results
+
+
+def test_run_persists_tenders_in_dry_run(monkeypatch):
+    """Dry-Run يحفظ الصفقات ولا يبلّغ ولا يزيد عدّاد المحاولات."""
+    config = AppConfig(dry_run=True)
+    _patch_run(monkeypatch, config)
+    monkeypatch.setattr(main, "build_notifier", lambda cfg: pytest.fail("Dry-Run لا يبني مُرسّلاً"))
+
+    main.run()
+
+    store = FakeStore.instances[0]
+    assert store.saved == [dict(LIVE_TENDER)]
+    assert store.count() == 1
+    assert store.marked == []
+    assert store.failed == []
+
+
+def test_run_does_not_mark_sent_when_all_channels_fail(monkeypatch):
+    """فشل كل القنوات = محاولة فاشلة لكل صفقة، بلا وسم."""
+    config = AppConfig(dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id="42")
+    _patch_run(monkeypatch, config)
+    monkeypatch.setattr(
+        main,
+        "build_notifier",
+        lambda cfg: FakeNotifier(
+            [
+                {"channel": "TelegramChannel", "error": "ValueError: boom"},
+                {"channel": "OtherChannel", "error": "TimeoutError: late"},
+            ]
+        ),
+    )
+
+    main.run()
+
+    store = FakeStore.instances[0]
+    assert store.marked == []
+    assert store.failed == [dict(LIVE_TENDER)]
+    assert store.failed_attempt_error == "ValueError: boom; TimeoutError: late"
+
+
+def test_run_marks_sent_when_one_channel_succeeds(monkeypatch):
+    """نجاح قناة واحدة يكفي للوسم، ويُقرأ الناتج بـ .get لتحمّل channel/error."""
+    config = AppConfig(dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id="42")
+    _patch_run(monkeypatch, config)
+    monkeypatch.setattr(
+        main,
+        "build_notifier",
+        lambda cfg: FakeNotifier(
+            [
+                {"channel": "TelegramChannel", "text_ok": True, "file_ok": True},
+                {"channel": "OtherChannel", "error": "ValueError: boom"},
+            ]
+        ),
+    )
+
+    main.run()
+
+    store = FakeStore.instances[0]
+    assert store.marked == [dict(LIVE_TENDER)]
+    assert store.failed == []
+
+
+def test_smart_scraper_skips_blocked_tender(tmp_path, monkeypatch, capsys):
+    """الكرولز الذكي يستثني الصفقة المحجوبة ويُبلّغ الحيّة فقط."""
+    from run_smart_scraper import main as smart_main
+    from storage.db import TenderStore
+
+    blocked = {**LIVE_TENDER, "title": "مناقصة محجوبة", "link": "https://ade.dz/blocked"}
+    fresh = {**LIVE_TENDER, "title": "مناقصة حية", "link": "https://ade.dz/fresh"}
+
+    store = TenderStore(db_path=str(tmp_path / "smart.db"))
+    store.add_tender(blocked)
+    for _ in range(3):
+        store.register_failed_attempt(blocked, "boom")
+    assert store.is_new_or_changed(blocked) is False
+
+    sent: list[str] = []
+
+    class FakeCrawler:
+        def __init__(self, name, url, priority="1"):
+            self.url = url
+
+        def run(self):
+            return [dict(blocked), dict(fresh)]
+
+    class FakeNotifier:
+        def __init__(self, token, chat_id):
+            pass
+
+        def send_message(self, message):
+            sent.append(message)
+            return True
+
+    monkeypatch.setattr(
+        "run_smart_scraper.SourcesLoader",
+        lambda: type(
+            "L", (), {"crawlable": lambda self, priority=None: [{"tp": "https://x.dz", "ar": "X"}]}
+        )(),
+    )
+    monkeypatch.setattr(
+        "run_smart_scraper.TenderFilter",
+        lambda: type("F", (), {"filter_tenders": lambda self, tenders: list(tenders)})(),
+    )
+    monkeypatch.setattr("run_smart_scraper.SmartCrawler", FakeCrawler)
+    monkeypatch.setattr("run_smart_scraper.TelegramNotifier", FakeNotifier)
+    monkeypatch.setattr("run_smart_scraper.TenderStore", lambda: store)
+    monkeypatch.setattr(sys, "argv", ["run_smart_scraper.py", "1", "5"])
+
+    smart_main()
+
+    assert len(sent) == 1
+    assert "مناقصة حية" in sent[0]
+    assert "مناقصة محجوبة" not in sent[0]
+    assert store.is_notified(fresh) is True
+    assert store.is_new_or_changed(blocked) is False
+    assert store.blocked_tenders()[0]["title"] == "مناقصة محجوبة"
+    assert "Sent 1 to Telegram" in capsys.readouterr().out
+
+
+def test_T2_tests_still_pass_after_T1():
+    """اختبارات T2 الأساسية ما زالت تحمي العقود التي بُنيت عليها."""
+    from notifications.base import NotificationChannel, NotificationManager
+
+    class Broken(NotificationChannel):
+        def send_text(self, message):
+            raise ValueError("فشل")
+
+        def send_file(self, filepath, caption=""):
+            return False
+
+    manager = NotificationManager()
+    manager.register(Broken())
+    results = manager.broadcast("hi")
+
+    assert results[0]["error"].startswith("ValueError")
+    assert build_notifier(AppConfig(dry_run=True)) is None
+    partial = AppConfig(dry_run=False, telegram_bot_token="x", telegram_chat_id=None)
+    assert build_notifier(partial) is None

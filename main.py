@@ -167,22 +167,33 @@ def run():
         store.close()
         return
 
+    inserted = store.save_many(new_or_changed)
+    logger.info(f"💾 حُفظت {inserted} صفقة جديدة في القاعدة")
+
     excel_path = build_excel_report(new_or_changed)
     summary = build_summary_message(new_or_changed)
 
     if dry_run:
         logger.warning("DRY_RUN=true: skipping Telegram send")
         logger.info("DRY_RUN report path: %s", excel_path)
+    elif notifier is None:
+        logger.warning("تخطّي الإرسال: الإعدادات غير مكتملة")
     else:
-        if notifier is None:
-            logger.warning("تجاوز الإرسال: لا يوجد مُرسِل مُهيّأ")
-        else:
-            logger.info("📤 جاري الإرسال إلى تلغرام...")
-            results = notifier.broadcast(summary, filepath=excel_path)
-            logger.info(f"نتائج الإرسال: {results}")
+        logger.info("📤 جاري الإرسال إلى تلغرام...")
+        results = notifier.broadcast(summary, filepath=excel_path)
+        logger.info(f"نتائج الإرسال: {results}")
 
+        if any(entry.get("text_ok") is True for entry in results):
             for tender in new_or_changed:
-                store.mark_notified(tender)
+                store.mark_sent(tender)
+        else:
+            error_msg = "; ".join(
+                str(entry.get("error", "unknown")) for entry in results if entry.get("error")
+            )
+            for tender in new_or_changed:
+                store.register_failed_attempt(tender, error_msg)
+            logger.warning("فشل الإرسال عبر كل القنوات — سُجّلت محاولة فاشلة لكل صفقة: %s", error_msg)
+
     logger.info(f"📊 إجمالي المناقصات المسجلة: {store.count()}")
     store.close()
     logger.info("=" * 60)

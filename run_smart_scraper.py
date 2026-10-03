@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 from crawlers.smart_crawler import SmartCrawler
 from sources import SourcesLoader
-from storage import TenderDatabase
+from storage.db import TenderStore
 from telegram_notifier import TelegramNotifier
 from tender_filter import TenderFilter
 
@@ -71,33 +71,31 @@ def main():
     filtered = filter_obj.filter_tenders(unique)
     print(f"Filtered: {len(filtered)}")
 
-    db = TenderDatabase()
-    new_count = 0
-    for t in filtered:
-        if db.add_tender(t):
-            new_count += 1
-
-    new_tenders = db.get_new_tenders(filtered)
+    db = TenderStore()
+    pending = [t for t in filtered if db.is_new_or_changed(t)]
+    saved_count = db.save_many(pending)
     stats = db.stats()
-    print(f"New: {new_count}, Total in DB: {stats['total']}")
+    print(f"New: {saved_count}, Total in DB: {stats['total']}")
 
-    if new_tenders and TELEGRAM_BOT_TOKEN:
+    if pending and TELEGRAM_BOT_TOKEN:
         target = TELEGRAM_CHANNEL_ID or TELEGRAM_CHAT_ID
         notifier = TelegramNotifier(TELEGRAM_BOT_TOKEN, target)
 
         msg = f"🔔 Smart Scraper - {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
-        msg += f"📊 New tenders: {len(new_tenders)}\n\n"
-        for idx, t in enumerate(new_tenders[:15], 1):
+        msg += f"📊 New tenders: {len(pending)}\n\n"
+        for idx, t in enumerate(pending[:15], 1):
             msg += f"[{idx}] {t['title'][:80]}\n"
             msg += f"    🏛️ {t.get('organisation', '-')}\n"
             msg += f"    🔗 {t.get('link', '#')}\n\n"
 
-        notifier.send_message(msg)
-
-        for t in new_tenders:
-            db.mark_notified(t)
-
-        print(f"Sent {len(new_tenders)} to Telegram")
+        if notifier.send_message(msg):
+            for t in pending:
+                db.mark_sent(t)
+            print(f"Sent {len(pending)} to Telegram")
+        else:
+            for t in pending:
+                db.register_failed_attempt(t, "telegram send_message failed")
+            print(f"FAILED to send {len(pending)} — recorded as failed attempts")
 
     print("\n" + "=" * 70)
 
