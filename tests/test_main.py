@@ -18,6 +18,8 @@ class FakeStore:
     def __init__(self, db_path=None):
         self.db_path = db_path
         self.marked: list[dict] = []
+        self.saved: list[dict] = []
+        self.failed: list[dict] = []
         self.closed = False
         FakeStore.instances.append(self)
 
@@ -25,10 +27,21 @@ class FakeStore:
         return True
 
     def count(self):
-        return 0
+        return len(self.saved)
+
+    def save_many(self, tenders):
+        self.saved.extend(tenders)
+        return len(tenders)
 
     def mark_notified(self, tender):
         self.marked.append(tender)
+
+    def mark_sent(self, tender):
+        self.marked.append(tender)
+
+    def register_failed_attempt(self, tender, error=""):
+        self.failed.append(tender)
+        return len(self.failed)
 
     def close(self):
         self.closed = True

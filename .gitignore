@@ -23,6 +23,8 @@ storage/*.db
 storage/*.sqlite
 *.db
 *.sqlite
+*.db-wal
+*.db-shm
 
 # Exports / generated files
 exports/
@@ -49,3 +51,9 @@ tenders_results.xlsx
 # Local crawler auth/session data
 storage/auth/
 storage/auth.backup.*
+
+# Diagnostic scripts
+check_dbs.py
+
+# Diagnostic scripts
+check_dbs.py

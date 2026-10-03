@@ -27,3 +27,19 @@ DZ-TENDERS-MVP is a Python project that:
 ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
 
 ## Project Structure
+
+## Blocked Notifications · إدارة الإشعارات المحجوبة
+
+A tender is **blocked** after 3 failed delivery attempts, so a permanently broken
+channel cannot re-notify the user every day. Inspect and release blocked tenders:
+
+```bash
+python -m storage.tools blocked              # list blocked tenders + last error
+python -m storage.tools unblock --fp <hash>  # release one tender by fingerprint
+python -m storage.tools unblock --all        # release every blocked tender
+python -m storage.tools --db <path> blocked  # target a specific database
+```
+
+The fingerprint is the SHA-256 of `title|organisation|link`. Use `--db` when
+running from another directory; otherwise the path comes from `DB_PATH`
+(default `storage/tenders.db`).

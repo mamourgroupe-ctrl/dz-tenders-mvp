@@ -14,16 +14,27 @@ class TenderStore(TenderDatabase):
     """Compatibility wrapper around TenderDatabase."""
 
     def is_new_or_changed(self, tender: dict) -> bool:
-        """Return True if this tender is not already stored."""
+        """هل تحتاج المناقصة إلى إشعار؟
+
+        تُعيد ``True`` في حالتين فقط: المناقصة غير مخزَّنة إطلاقاً، أو مخزَّنة
+        ولم تُبلَّغ بعد ولم تُحجب (``notified=0`` و ``blocked=0``). الصفقة
+        المحجوبة أو المُبلَّغة سابقاً تُعيد ``False``.
+
+        تنبيه: البصمة الحالية ``title|organisation|link`` لا تكتشف تغيّر الأجل
+        أو السعر، فاسم الدالة يَعِد بأكثر مما تفعل.
+        """
+        # TODO(FUTURE-T4): كشف تغيّر المحتوى ببصمة ثانية — DEVELOPMENT_ROADMAP T4
         fingerprint = self._fingerprint(tender)
 
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT 1 FROM tenders WHERE fingerprint = ? LIMIT 1",
+                "SELECT notified, blocked FROM tenders WHERE fingerprint = ? LIMIT 1",
                 (fingerprint,),
             ).fetchone()
 
-        return row is None
+        if row is None:
+            return True
+        return not row["notified"] and not row["blocked"]
 
     def mark_sent(self, tender: dict) -> None:
         """Save tender and mark it as sent/notified."""
