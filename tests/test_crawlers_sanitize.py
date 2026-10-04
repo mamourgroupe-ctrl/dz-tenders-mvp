@@ -24,15 +24,14 @@ ALGERIA_HTML = (
 )
 
 ADE_RAW_HREF = "/appels d'offres/  tuyaux pvc  "
+#: الصنف الفعلي لبطاقة طلب العروض في ADE؛ كان ``tender-item`` صنفاً متخيَّلاً.
 ADE_HTML = (
-    '<div class="tender-item">'
+    '<div class="service-block-two">'
     "<h3>Fourniture de tuyaux PVC</h3>"
     f'<a href="{ADE_RAW_HREF}">detail</a>'
-    '<span class="date">2026-10-01</span>'
     "</div>"
-    '<div class="tender-item">'
+    '<div class="service-block-two">'
     '<a href="javascript:void(0)">Fourniture de conduites PVC</a>'
-    '<span class="date">2026-10-02</span>'
     "</div>"
 )
 
@@ -91,7 +90,7 @@ def test_ade_crawler_passes_links_through_sanitize_url():
 def test_ade_crawler_falls_back_to_base_url_when_item_has_no_link():
     """صفقة ADE بلا رابط تأخذ رابط المصدر النظيف بدل رابط فارغ."""
     crawler = ADECrawler()
-    html = '<div class="tender-item"><h3>Fourniture de citernes</h3></div>'
+    html = '<div class="service-block-two"><h3>Fourniture de citernes</h3></div>'
 
     tenders = crawler.parse_tenders(html)
 
