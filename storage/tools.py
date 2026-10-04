@@ -14,6 +14,8 @@ import sys
 from config import AppConfig
 
 from .database import TenderDatabase
+from .lock import LOCK_TIMEOUT_EXIT_CODE, DbLockTimeout, db_lock
+from .paths import resolve_db_path
 
 UNBLOCK_HINT = "لعرض الصفقات المحجوبة: python -m storage.tools blocked"
 
@@ -41,10 +43,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _resolve_db_path(override: str | None) -> str:
-    """تحديد مسار قاعدة البيانات: الوسيط أولاً، ثم إعداد التطبيق."""
-    if override:
-        return override
-    return AppConfig.from_env().db_path
+    """تحديد مسار قاعدة البيانات: الوسيط أولاً، ثم إعداد التطبيق.
+
+    المسار يُطبَّع إلى مطلق حتى لا يفكّح أمرٌ إداريٌّ على ملفٍّ غير الملف
+    الذي يستخدمه مسارا التشغيل.
+    """
+    return resolve_db_path(override or AppConfig.from_env().db_path)
 
 
 def _run_unblock(store: TenderDatabase, args: argparse.Namespace) -> int:
@@ -114,12 +118,19 @@ def main(argv: list[str] | None = None) -> int:
         رمز خروج العملية.
     """
     args = _build_parser().parse_args(argv)
-    store = TenderDatabase(db_path=_resolve_db_path(args.db))
-    print(f"القاعدة: {store.db_path}")
+    db_path = _resolve_db_path(args.db)
 
-    if args.command == "unblock":
-        return _run_unblock(store, args)
-    return _run_blocked(store, args)
+    try:
+        with db_lock(db_path, label="storage.tools"):
+            store = TenderDatabase(db_path=db_path)
+            print(f"القاعدة: {store.db_path}")
+
+            if args.command == "unblock":
+                return _run_unblock(store, args)
+            return _run_blocked(store, args)
+    except DbLockTimeout as exc:
+        print(f"🔒 {exc}", file=sys.stderr)
+        return LOCK_TIMEOUT_EXIT_CODE
 
 
 if __name__ == "__main__":

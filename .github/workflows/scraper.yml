@@ -1,4 +1,8 @@
 name: DZ Tenders Scraper
+# هذه المهمة فحص مجدول بلا إرسال. المشروع على runner مؤقت و
+# storage/tenders.db غير متتبَّعة في git، فقاعدة البيانات تُنشأ من الصفر في كل
+# دورة وتُمحى بعدها؛ أي إرسال هنا يعني إعادة إشعار بكل مناقصة كل يوم. التقرير
+# يُرفق كـ artifact بدل إرساله. لا تُضِف أسراراً أو إرسالاً في هذه المهمة.
 on:
   schedule:
     - cron: '0 5 * * *'
@@ -15,8 +19,15 @@ jobs:
           python-version: '3.12'
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Run scraper
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python test_run.py
+      - name: Run scraper (dry run)
+        run: python test_run.py --dry-run
+      - name: Upload report artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tenders-report-${{ github.run_number }}
+          path: |
+            tenders_results.json
+            tenders_results.xlsx
+          if-no-files-found: ignore
+          retention-days: 7
