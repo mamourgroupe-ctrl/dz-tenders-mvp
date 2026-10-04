@@ -25,6 +25,8 @@ storage/*.sqlite
 *.sqlite
 *.db-wal
 *.db-shm
+*.db.lock
+*.lock
 
 # Exports / generated files
 exports/
