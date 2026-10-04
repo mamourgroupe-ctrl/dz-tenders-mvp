@@ -14,6 +14,9 @@ from dotenv import load_dotenv
 from crawlers.smart_crawler import SmartCrawler
 from sources import SourcesLoader
 from storage.db import TenderStore
+from storage.delivery import STATUS_FAILED, STATUS_LOCKED, STATUS_SENT, deliver
+from storage.lock import LOCK_TIMEOUT_EXIT_CODE
+from storage.paths import resolve_db_path
 from telegram_notifier import TelegramNotifier
 from tender_filter import TenderFilter
 
@@ -71,13 +74,12 @@ def main():
     filtered = filter_obj.filter_tenders(unique)
     print(f"Filtered: {len(filtered)}")
 
-    db = TenderStore()
-    pending = [t for t in filtered if db.is_new_or_changed(t)]
-    saved_count = db.save_many(pending)
-    stats = db.stats()
-    print(f"New: {saved_count}, Total in DB: {stats['total']}")
+    def send(pending: list[dict]) -> tuple[bool, str]:
+        """إرسال ملخّص الصفقات عبر تلغرام.
 
-    if pending and TELEGRAM_BOT_TOKEN:
+        Returns:
+            (نجاح، سبب_الخطأ).
+        """
         target = TELEGRAM_CHANNEL_ID or TELEGRAM_CHAT_ID
         notifier = TelegramNotifier(TELEGRAM_BOT_TOKEN, target)
 
@@ -89,13 +91,29 @@ def main():
             msg += f"    🔗 {t.get('link', '#')}\n\n"
 
         if notifier.send_message(msg):
-            for t in pending:
-                db.mark_sent(t)
-            print(f"Sent {len(pending)} to Telegram")
-        else:
-            for t in pending:
-                db.register_failed_attempt(t, "telegram send_message failed")
-            print(f"FAILED to send {len(pending)} — recorded as failed attempts")
+            return True, ""
+        return False, "telegram send_message failed"
+
+    # نفس مسار التسليم الموحّد المستعمل في main.py، تحت قفل واحد.
+    # TenderStore() بلا وسائط يفتح DEFAULT_DB_PATH، وهو نفس ما يعيده
+    # resolve_db_path() بلا وسائط.
+    outcome = deliver(
+        resolve_db_path(),
+        TenderStore,
+        filtered,
+        send if TELEGRAM_BOT_TOKEN else None,
+        label="run_smart_scraper.py",
+    )
+
+    print(f"New: {outcome.inserted}, Total in DB: {outcome.total}")
+
+    if outcome.status == STATUS_LOCKED:
+        print("Database is locked by another process — cycle skipped")
+        raise SystemExit(LOCK_TIMEOUT_EXIT_CODE)
+    if outcome.status == STATUS_SENT:
+        print(f"Sent {len(outcome.pending)} to Telegram")
+    elif outcome.status == STATUS_FAILED:
+        print(f"FAILED to send {len(outcome.pending)} — recorded as failed attempts")
 
     print("\n" + "=" * 70)
 

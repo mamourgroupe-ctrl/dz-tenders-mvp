@@ -17,6 +17,9 @@ from notifications.base import NotificationManager
 from notifications.excel_report import build_excel_report
 from notifications.telegram_channel import TelegramChannel
 from storage.db import TenderStore
+from storage.delivery import STATUS_LOCKED, deliver
+from storage.lock import LOCK_TIMEOUT_EXIT_CODE
+from storage.paths import resolve_db_path
 from tender_filter import TenderFilter
 
 load_dotenv()
@@ -134,14 +137,13 @@ def build_summary_message(new_tenders: list[dict]) -> str:
 
 
 def run():
+    """نقطة الدخول: زحف، ترشيح، ثم تسليم وحيد تحت قفل قاعدة البيانات."""
     config = AppConfig.from_env()
     setup_logging(config.log_level)
     dry_run = config.dry_run
     logger.info("=" * 60)
     logger.info("🚀 بدء تشغيل DZ-TENDERS-MVP")
     logger.info("=" * 60)
-
-    store = TenderStore(db_path=config.db_path)
 
     notifier = None
     if not dry_run:
@@ -158,44 +160,51 @@ def run():
     filtered = apply_filter(live_tenders)
     logger.info(f"تبقّى {len(filtered)} مناقصة بعد الفلترة")
 
-    logger.info("🧠 التحقق من المناقصات الجديدة...")
-    new_or_changed = [t for t in filtered if store.is_new_or_changed(t)]
-    logger.info(f"منها {len(new_or_changed)} مناقصة جديدة/محدّثة")
+    # المسار مطلق دائماً: نسبيٌ يُحلّ على مجلد العمل ينتج قاعدتين مختلفتين
+    # بين main.py و run_smart_scraper.py، فيفقد القفل معناه.
+    db_path = resolve_db_path(config.db_path)
+    report_path: str | None = None
 
-    if not new_or_changed:
-        logger.info("✅ لا يوجد جديد — لن يُرسل أي إشعار.")
-        store.close()
-        return
+    def build_report(pending: list[dict]) -> None:
+        """توليد تقرير Excel من الصفقات الجديدة (داخل القفل)."""
+        nonlocal report_path
+        report_path = build_excel_report(pending)
+        logger.info("📄 تقرير Excel: %s", report_path)
 
-    inserted = store.save_many(new_or_changed)
-    logger.info(f"💾 حُفظت {inserted} صفقة جديدة في القاعدة")
+    def send(new_tenders: list[dict]) -> tuple[bool, str]:
+        """إرسال التقرير عبر القنوات المسجّلة.
 
-    excel_path = build_excel_report(new_or_changed)
-    summary = build_summary_message(new_or_changed)
-
-    if dry_run:
-        logger.warning("DRY_RUN=true: skipping Telegram send")
-        logger.info("DRY_RUN report path: %s", excel_path)
-    elif notifier is None:
-        logger.warning("تخطّي الإرسال: الإعدادات غير مكتملة")
-    else:
+        Returns:
+            (نجاح، سبب_الخطأ) — النجاح يعني نجاح قناة نصية واحدة على الأقل.
+        """
+        summary = build_summary_message(new_tenders)
         logger.info("📤 جاري الإرسال إلى تلغرام...")
-        results = notifier.broadcast(summary, filepath=excel_path)
+        results = notifier.broadcast(summary, filepath=report_path)
         logger.info(f"نتائج الإرسال: {results}")
 
         if any(entry.get("text_ok") is True for entry in results):
-            for tender in new_or_changed:
-                store.mark_sent(tender)
-        else:
-            error_msg = "; ".join(
-                str(entry.get("error", "unknown")) for entry in results if entry.get("error")
-            )
-            for tender in new_or_changed:
-                store.register_failed_attempt(tender, error_msg)
-            logger.warning("فشل الإرسال عبر كل القنوات — سُجّلت محاولة فاشلة لكل صفقة: %s", error_msg)
+            return True, ""
 
-    logger.info(f"📊 إجمالي المناقصات المسجلة: {store.count()}")
-    store.close()
+        error_msg = "; ".join(
+            str(entry.get("error", "unknown")) for entry in results if entry.get("error")
+        )
+        return False, error_msg
+
+    outcome = deliver(
+        db_path,
+        lambda: TenderStore(db_path=db_path),
+        filtered,
+        send if notifier is not None else None,
+        dry_run=dry_run,
+        on_pending=build_report,
+        label="main.py",
+    )
+
+    if outcome.status == STATUS_LOCKED:
+        logger.warning("توقّفت الدورة: قاعدة البيانات مشغولة في عملية أخرى (بلا كتابة)")
+        raise SystemExit(LOCK_TIMEOUT_EXIT_CODE)
+
+    logger.info(f"📊 إجمالي المناقصات المسجلة: {outcome.total}")
     logger.info("=" * 60)
 
 
