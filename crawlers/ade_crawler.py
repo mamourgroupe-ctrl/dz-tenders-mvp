@@ -1,4 +1,7 @@
 import logging
+import re
+import unicodedata
+from datetime import date
 from urllib.parse import urljoin
 
 import requests
@@ -27,6 +30,29 @@ ADE_ORGANISATION = "Algérienne des Eaux (ADE)"
 #: لا أنها فشلت في الاستخراج.
 UNKNOWN_VALUE = "غير محدد"
 
+#: سنة النشر من الرابط.
+SLUG_YEAR_RE = re.compile(r"n-\d{1,2}-(20\d{2})", re.IGNORECASE)
+
+TITLE_YEAR_RE = re.compile(r"n[°o]?\s*\d{1,2}\s*-\s*(20\d{2})", re.IGNORECASE)
+
+REFERENCE_YEAR_RE = TITLE_YEAR_RE
+
+POST_DATE_RE = re.compile(
+    r'<div class="post-date">\s*<h5>\s*(?:[a-z]+\s+)?([a-zA-Zéûôçà]{3,10})\s+(\d{4})\s*</h5>',
+    re.IGNORECASE,
+)
+
+FRENCH_MONTHS = {
+    "jan": 1, "fev": 2, "avr": 4, "mai": 5, "jui": 6, "jul": 7,
+    "aou": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+
+
+def _fold(text: str) -> str:
+    """تصغير النص مع إزالة الحركات."""
+    decomposed = unicodedata.normalize("NFKD", text.casefold())
+    return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+
 
 class ADECrawler(BaseCrawler):
     """
@@ -35,6 +61,7 @@ class ADECrawler(BaseCrawler):
 
     def __init__(self, base_url="https://www.ade.dz"):
         super().__init__(sanitize_url(base_url))
+        self._detail_dates: dict[str, date | None] = {}
 
     @property
     def listing_url(self) -> str:
@@ -92,6 +119,10 @@ class ADECrawler(BaseCrawler):
             if not link:
                 continue
 
+            href = anchor["href"] if anchor else ""
+            slug = href.rstrip("/").rsplit("/", 1)[-1]
+            published = self._published_date(slug, title, link if href else None)
+
             tenders.append(
                 {
                     "title": title,
@@ -101,6 +132,7 @@ class ADECrawler(BaseCrawler):
                     "product": UNKNOWN_VALUE,
                     "deadline": UNKNOWN_VALUE,
                     "status": UNKNOWN_VALUE,
+                    "published_date": published.isoformat() if published else None,
                 }
             )
 
@@ -130,6 +162,45 @@ class ADECrawler(BaseCrawler):
             return image.get("alt", "").strip()
 
         return "بدون عنوان"
+
+
+    def _year_from_reference(self, slug: str, title: str) -> int | None:
+        """سنة النشر من الرابط أو العنوان."""
+        for pattern, text in ((SLUG_YEAR_RE, slug), (TITLE_YEAR_RE, title)):
+            match = pattern.search(text or "")
+            if match:
+                return int(match.group(1))
+        return None
+
+    @staticmethod
+    def _published_from_detail(html: str) -> date | None:
+        """تاريخ النشر من صفحة التفاصيل."""
+        if not html:
+            return None
+        match = POST_DATE_RE.search(html)
+        if match:
+            month = FRENCH_MONTHS.get(_fold(match.group(1))[:3])
+            if month:
+                return date(int(match.group(2)), month, 1)
+        match = REFERENCE_YEAR_RE.search(html)
+        if match:
+            return date(int(match.group(1)), 1, 1)
+        return None
+
+    def _published_date(self, slug: str, title: str, detail_url: str | None) -> date | None:
+        """تاريخ النشر من الرابط، ثم التفاصيل."""
+        year = self._year_from_reference(slug, title)
+        if year:
+            return date(year, 1, 1)
+        if not detail_url:
+            return None
+        if detail_url not in self._detail_dates:
+            try:
+                html = self.fetch_page(detail_url)
+            except Exception:
+                html = None
+            self._detail_dates[detail_url] = self._published_from_detail(html)
+        return self._detail_dates[detail_url]
 
     def run(self):
         logger.info(f"بدء عملية جلب المناقصات من: {self.listing_url}")

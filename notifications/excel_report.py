@@ -20,6 +20,7 @@ COLUMNS_MAPPING = {
     "relevance_score": "درجة الأهمية",
     #: يضيفه tender_filter.classify_tender؛ بلا ترجمة كان يظهر عموداً إنجليزياً.
     "wilaya_priority": "أولوية الولاية",
+    "published_date": "تاريخ النشر",
 }
 
 

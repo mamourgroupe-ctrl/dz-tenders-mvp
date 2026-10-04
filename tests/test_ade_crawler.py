@@ -29,6 +29,17 @@ def crawler() -> ADECrawler:
     return ADECrawler()
 
 
+@pytest.fixture(autouse=True)
+def _block_network(monkeypatch):
+    """يمنع أي طلب شبكة صامت."""
+    import requests as _requests
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("network blocked in ADE tests")
+
+    monkeypatch.setattr(_requests, "get", _boom)
+
+
 def test_listing_url_points_at_the_category_not_the_homepage(crawler):
     """القائمة في مسار التصنيف، لا في الصفحة الجذرية."""
     assert crawler.listing_url == "https://www.ade.dz/categorie/appel-doffres"
@@ -129,7 +140,9 @@ def test_run_fetches_the_listing_page(crawler, monkeypatch):
 
     tenders = crawler.run()
 
-    assert fetched == ["https://www.ade.dz/categorie/appel-doffres"]
+    # W16-2 adds detail fetches for undated tenders, so listing is only the first URL.
+    assert fetched[0] == "https://www.ade.dz/categorie/appel-doffres"
+    assert all(url.startswith("https://www.ade.dz/") for url in fetched)
     assert len(tenders) == 4
 
 
@@ -233,3 +246,46 @@ def test_wilaya_priority_is_translated_in_excel():
     from notifications.excel_report import COLUMNS_MAPPING
 
     assert COLUMNS_MAPPING["wilaya_priority"] == "أولوية الولاية"
+
+
+def test_ade_extracts_publication_year_from_slug():
+    """السنة من الرابط."""
+    tenders = ADECrawler().parse_tenders(_load("ade_categorie_appel_doffres.html"))
+    assert tenders[0]["published_date"] == "2023-01-01"
+    assert tenders[2]["published_date"] == "2023-01-01"
+
+
+def test_ade_falls_back_to_title_for_year():
+    """سنة من العنوان عند غيابها في الرابط."""
+    html = ('<div class="service-block-two"><h3>'
+            '<a href="../article/sans-annee">Appel d\'Offres National N° 09-2024</a>'
+            "</h3></div>")
+    tenders = ADECrawler().parse_tenders(html)
+    assert tenders[0]["published_date"] == "2024-01-01"
+
+
+def test_ade_fetches_detail_for_undated_tender(monkeypatch):
+    """جلب التفاصيل لصفقة بلا تاريخ."""
+    crawler = ADECrawler()
+    detail = _load("ade_article_detail.html")
+    calls = []
+
+    def _fake_fetch(url):
+        calls.append(url)
+        return detail
+
+    monkeypatch.setattr(crawler, "fetch_page", _fake_fetch)
+    html = ('<div class="service-block-two"><h3><a href="../article/'
+            'appel-doffres-national-ouvert-pour-lacquisition-de-compteurs-deau-'
+            'potable-froide-de-type-multi-jets">Appel d\'offres national ouvert '
+            "pour l'acquisition de compteurs</a></h3></div>")
+    tenders = crawler.parse_tenders(html)
+    assert tenders[0]["published_date"] == "2023-02-01"
+    assert calls == ["https://www.ade.dz/article/appel-doffres-national-ouvert-"
+                     "pour-lacquisition-de-compteurs-deau-potable-froide-de-type-multi-jets"]
+
+
+def test_excel_report_includes_published_date():
+    """عمود تاريخ النشر معرّب."""
+    from notifications.excel_report import COLUMNS_MAPPING
+    assert COLUMNS_MAPPING["published_date"] == "تاريخ النشر"
