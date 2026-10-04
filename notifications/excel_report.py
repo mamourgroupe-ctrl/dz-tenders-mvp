@@ -18,6 +18,8 @@ COLUMNS_MAPPING = {
     "status": "الحالة",
     "link": "رابط المناقصة",
     "relevance_score": "درجة الأهمية",
+    #: يضيفه tender_filter.classify_tender؛ بلا ترجمة كان يظهر عموداً إنجليزياً.
+    "wilaya_priority": "أولوية الولاية",
 }
 
 
