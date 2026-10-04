@@ -43,8 +43,17 @@ POST_DATE_RE = re.compile(
 )
 
 FRENCH_MONTHS = {
-    "jan": 1, "fev": 2, "avr": 4, "mai": 5, "jui": 6, "jul": 7,
-    "aou": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+    "jan": 1,
+    "fev": 2,
+    "avr": 4,
+    "mai": 5,
+    "jui": 6,
+    "jul": 7,
+    "aou": 8,
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dec": 12,
 }
 
 
@@ -162,7 +171,6 @@ class ADECrawler(BaseCrawler):
             return image.get("alt", "").strip()
 
         return "بدون عنوان"
-
 
     def _year_from_reference(self, slug: str, title: str) -> int | None:
         """سنة النشر من الرابط أو العنوان."""

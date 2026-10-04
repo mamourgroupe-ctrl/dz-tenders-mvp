@@ -257,9 +257,11 @@ def test_ade_extracts_publication_year_from_slug():
 
 def test_ade_falls_back_to_title_for_year():
     """سنة من العنوان عند غيابها في الرابط."""
-    html = ('<div class="service-block-two"><h3>'
-            '<a href="../article/sans-annee">Appel d\'Offres National N° 09-2024</a>'
-            "</h3></div>")
+    html = (
+        '<div class="service-block-two"><h3>'
+        '<a href="../article/sans-annee">Appel d\'Offres National N° 09-2024</a>'
+        "</h3></div>"
+    )
     tenders = ADECrawler().parse_tenders(html)
     assert tenders[0]["published_date"] == "2024-01-01"
 
@@ -275,17 +277,22 @@ def test_ade_fetches_detail_for_undated_tender(monkeypatch):
         return detail
 
     monkeypatch.setattr(crawler, "fetch_page", _fake_fetch)
-    html = ('<div class="service-block-two"><h3><a href="../article/'
-            'appel-doffres-national-ouvert-pour-lacquisition-de-compteurs-deau-'
-            'potable-froide-de-type-multi-jets">Appel d\'offres national ouvert '
-            "pour l'acquisition de compteurs</a></h3></div>")
+    html = (
+        '<div class="service-block-two"><h3><a href="../article/'
+        "appel-doffres-national-ouvert-pour-lacquisition-de-compteurs-deau-"
+        "potable-froide-de-type-multi-jets\">Appel d'offres national ouvert "
+        "pour l'acquisition de compteurs</a></h3></div>"
+    )
     tenders = crawler.parse_tenders(html)
     assert tenders[0]["published_date"] == "2023-02-01"
-    assert calls == ["https://www.ade.dz/article/appel-doffres-national-ouvert-"
-                     "pour-lacquisition-de-compteurs-deau-potable-froide-de-type-multi-jets"]
+    assert calls == [
+        "https://www.ade.dz/article/appel-doffres-national-ouvert-"
+        "pour-lacquisition-de-compteurs-deau-potable-froide-de-type-multi-jets"
+    ]
 
 
 def test_excel_report_includes_published_date():
     """عمود تاريخ النشر معرّب."""
     from notifications.excel_report import COLUMNS_MAPPING
+
     assert COLUMNS_MAPPING["published_date"] == "تاريخ النشر"

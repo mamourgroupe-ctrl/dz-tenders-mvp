@@ -2,10 +2,44 @@ import json
 import logging
 import os
 import re
+from datetime import date, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
 TARGETS_FILE = os.path.join(os.path.dirname(__file__), "data", "targets.json")
+
+#: نافذة الحداثة الافتراضية.
+FRESHNESS_WINDOW_DAYS_DEFAULT = 90
+
+#: مفتاح القتل لفلتر الحداثة.
+FRESHNESS_ENABLED_DEFAULT = True
+
+#: تاريخ ISO في بداية النص.
+DATE_PREFIX_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})")
+
+
+def _env_int(name: str, default: int) -> int:
+    """قراءة عدد صحيح موجب."""
+    raw = os.getenv(name)
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        logger.warning("%s=%r ليس رقماً — يُتجاهل", name, raw)
+        return default
+    if value <= 0:
+        logger.warning("%s=%r يجب أن يكون موجباً", name, raw)
+        return default
+    return value
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    """قراءة قيمة منطقية."""
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 class TenderFilter:
@@ -15,6 +49,13 @@ class TenderFilter:
     WEIGHT_KEYWORD = 2
     WEIGHT_PRODUCT = 3
     MIN_SCORE_THRESHOLD = 3
+
+    #: سبب الاستبعاد: آخر أجل للتسليم مضى.
+    REASON_DEADLINE_PASSED = "deadline_passed"
+    #: سبب الاستبعاد: تاريخ نشر أقدم من نافذة الحداثة.
+    REASON_PUBLISHED_STALE = "published_stale"
+    #: سبب الاستبعاد: مصدر ينشر تواريخ لكن الصفقة بلا تاريخ.
+    REASON_UNDATED = "undated_dated_source"
 
     STOP_WORDS = {
         "من",
@@ -55,11 +96,33 @@ class TenderFilter:
         "by",
     }
 
-    def __init__(self, targets_file: str = TARGETS_FILE):
+    def __init__(
+        self,
+        targets_file: str = TARGETS_FILE,
+        freshness_window_days: int | None = None,
+        freshness_enabled: bool | None = None,
+    ):
+        """تهيئة المرشِّح.
+
+        Args:
+            targets_file: مسار ملف الأهداف.
+            freshness_window_days: نافذة الحداثة بالأيام (None = من البيئة).
+            freshness_enabled: تعطيل/تفعيل فلتر الحداثة (None = من البيئة).
+        """
         self.targets_file = targets_file
         self.targets = self._load_targets()
         self._compile_patterns()
         self._compile_wilaya_patterns()
+        self.freshness_window_days = (
+            _env_int("FRESHNESS_WINDOW_DAYS", FRESHNESS_WINDOW_DAYS_DEFAULT)
+            if freshness_window_days is None
+            else int(freshness_window_days)
+        )
+        self.freshness_enabled = (
+            _env_bool("FRESHNESS_ENABLED", FRESHNESS_ENABLED_DEFAULT)
+            if freshness_enabled is None
+            else bool(freshness_enabled)
+        )
 
     def _load_targets(self) -> dict:
         try:
@@ -260,8 +323,14 @@ class TenderFilter:
         }
 
     def filter_tenders(self, tenders: list[dict]) -> list[dict]:
+        """تصفية المناقصات: الحداثة أولاً، ثم التصنيف."""
+        fresh, dropped = self.filter_fresh(tenders)
+        if dropped:
+            listed = "، ".join(f"{title} ({reason})" for reason, title in dropped[:5])
+            more = f" و{len(dropped) - 5} أخرى" if len(dropped) > 5 else ""
+            logger.warning(f"تم استبعاد {len(dropped)} مناقصة منتهية أو غير مؤرّخة: {listed}{more}")
         results = []
-        for tender in tenders:
+        for tender in fresh:
             classified = self.classify_tender(tender)
             if classified:
                 results.append(classified)
@@ -297,3 +366,76 @@ class TenderFilter:
                 for fid, info in groups.items()
             },
         }
+
+    @staticmethod
+    def _coerce_date(value: object) -> date | None:
+        """تحويل قيمة إلى date، أو None. لا يرفع استثناءً."""
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, date):
+            return value
+        if not isinstance(value, str):
+            return None
+        match = DATE_PREFIX_RE.match(value.strip())
+        if not match:
+            return None
+        try:
+            return date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _parse_deadline(value: object) -> date | None:
+        """قراءة deadline كنص أو تاريخ."""
+        return TenderFilter._coerce_date(value)
+
+    @staticmethod
+    def _parse_published_date(value: object) -> date | None:
+        """قراءة published_date كنص أو تاريخ."""
+        return TenderFilter._coerce_date(value)
+
+    def filter_fresh(
+        self,
+        tenders: list[dict],
+        *,
+        window_days: int | None = None,
+        today: date | None = None,
+    ) -> tuple[list[dict], list[tuple[str, str]]]:
+        """حذف المناقصات المنتهية أو التي لا يمكن الحكم عليها.
+
+        القواعد:
+        1. deadline مضى ⇒ حذف.
+        2. لا deadline، وpublished_date أقدم من النافذة ⇒ حذف.
+        3. لا تاريخان، والمفتاح published_date موجود ⇒ حذف.
+        """
+        if not self.freshness_enabled:
+            return list(tenders), []
+        window = self.freshness_window_days if window_days is None else int(window_days)
+        reference = today or date.today()
+        cutoff = reference - timedelta(days=window)
+        kept: list[dict] = []
+        dropped: list[tuple[str, str]] = []
+        for tender in tenders:
+            title = tender.get("title", "")
+            if tender.get("is_sample"):
+                kept.append(tender)
+                continue
+            deadline = self._parse_deadline(tender.get("deadline"))
+            published = self._parse_published_date(tender.get("published_date"))
+            if deadline is not None:
+                if deadline < reference:
+                    dropped.append((self.REASON_DEADLINE_PASSED, title))
+                else:
+                    kept.append(tender)
+                continue
+            if published is None:
+                if "published_date" in tender:
+                    dropped.append((self.REASON_UNDATED, title))
+                else:
+                    kept.append(tender)
+                continue
+            if published < cutoff:
+                dropped.append((self.REASON_PUBLISHED_STALE, title))
+            else:
+                kept.append(tender)
+        return kept, dropped
