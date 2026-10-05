@@ -1,8 +1,27 @@
-"""Logging configuration for DZ Tenders."""
-
+"""Logging configuration with UTF-8 console support."""
 import logging
 import sys
 from pathlib import Path
+
+
+def _force_utf8_streams() -> None:
+    """Reconfigure stdout/stderr to UTF-8 (fixes CP1252 emoji errors on Windows).
+
+    Must be called before creating StreamHandlers. Uses the stdlib
+    ``reconfigure`` method (Python 3.7+), which safely replaces the
+    encoding of an existing text stream.
+    """
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        if stream is None:
+            continue
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                # Stream may not support reconfiguration (e.g., pytest capture).
+                pass
 
 
 def setup_logging(
@@ -12,8 +31,12 @@ def setup_logging(
     """Configure console and file logging.
 
     The file logger stores runtime logs in UTF-8, which is important
-    because the project logs Arabic messages.
+    because the project logs Arabic messages and emoji.
+    Console output is also forced to UTF-8 to avoid CP1252 errors
+    when running under Task Scheduler on Windows.
     """
+    _force_utf8_streams()
+
     level = getattr(logging, log_level.upper(), logging.INFO)
 
     log_path = Path(log_file)
