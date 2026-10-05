@@ -5,6 +5,7 @@ main.py
 
 import logging
 import os
+from html import escape as _h
 
 from dotenv import load_dotenv
 
@@ -160,21 +161,107 @@ def build_notifier(config: AppConfig) -> NotificationManager | None:
     return notifier
 
 
+def _priority_badge(score: float) -> str:
+    """Map relevance_score to a visual priority badge."""
+    if score >= 85:
+        return "\U0001f3af P1"
+    if score >= 70:
+        return "\U0001f4cb P2"
+    if score >= 50:
+        return "\U0001f4cc P3"
+    return "\U0001f4ce"
+
+
+def _days_until(deadline_str: str | None) -> str:
+    """Human-readable days remaining (Arabic)."""
+    if not deadline_str:
+        return ""
+    try:
+        from datetime import date, datetime
+
+        d = datetime.fromisoformat(deadline_str[:10]).date()
+        delta = (d - date.today()).days
+        if delta < 0:
+            return "(\u0645\u0646\u062a\u0647\u064a)"
+        if delta == 0:
+            return "(\u064a\u0646\u062a\u0647\u064a \u0627\u0644\u064a\u0648\u0645)"
+        return f"({delta} \u064a\u0648\u0645 \u0645\u062a\u0628\u0642\u064d)"
+    except (ValueError, TypeError):
+        return ""
+
+
+def _format_products(t: dict) -> str:
+    """Extract up to 3 product/family names."""
+    products = t.get("matched_products") or []
+    if isinstance(products, list) and products:
+        return ", ".join(str(p) for p in products[:3])
+    families = t.get("matched_families") or []
+    if isinstance(families, list):
+        names = [f.get("name_ar", "") for f in families if isinstance(f, dict)]
+        names = [n for n in names if n]
+        if names:
+            return ", ".join(names[:3])
+    return ""
+
+
 def build_summary_message(new_tenders: list[dict]) -> str:
-    by_family: dict[str, int] = {}
-    for t in new_tenders:
-        for fam in t.get("matched_families", []):
-            name = fam.get("name_ar", "غير مصنّف")
-            by_family[name] = by_family.get(name, 0) + 1
+    """Build an HTML-formatted Telegram summary.
 
-    lines = [f"🔔 <b>تقرير DZ-TENDERS</b>\n📋 {len(new_tenders)} مناقصة جديدة:\n"]
-    for family, count in sorted(by_family.items(), key=lambda x: -x[1]):
-        lines.append(f"• {family}: {count}")
+    Each tender shows: priority badge, title, organisation, wilaya,
+    deadline (+days remaining), matched products, clickable link.
+    """
+    if not new_tenders:
+        return (
+            "\U0001f514 <b>DZ-TENDERS</b>\n\n"
+            "\u0644\u0627 \u062a\u0648\u062c\u062f "
+            "\u0645\u0646\u0627\u0642\u0635\u0627\u062a \u062c\u062f\u064a\u062f\u0629."
+        )
 
-    # إضافة عناوين أول 5 مناقصات
-    lines.append("\n━━━━━━━━━━━━━━━━━━")
-    for i, t in enumerate(new_tenders[:5], 1):
-        lines.append(f"{i}. {t.get('title', 'بدون عنوان')[:80]}")
+    # Priority counts
+    p1 = sum(1 for t in new_tenders if (t.get("relevance_score") or 0) >= 85)
+    p2 = sum(1 for t in new_tenders if 70 <= (t.get("relevance_score") or 0) < 85)
+    p3 = sum(1 for t in new_tenders if 50 <= (t.get("relevance_score") or 0) < 70)
+
+    lines = [
+        "\U0001f514 <b>DZ-TENDERS</b> \u2014 \u0645\u0644\u062e\u0635 \u062c\u062f\u064a\u062f",
+        f"\U0001f4cb <b>{len(new_tenders)}</b> "
+        "\u0645\u0646\u0627\u0642\u0635\u0629 \u062c\u062f\u064a\u062f\u0629",
+        f"\U0001f3af P1: {p1} | \U0001f4cb P2: {p2} | \U0001f4cc P3: {p3}",
+        "",
+    ]
+
+    # Top 5 by relevance_score
+    top = sorted(new_tenders, key=lambda x: -(x.get("relevance_score") or 0))[:5]
+
+    for i, t in enumerate(top, 1):
+        score = t.get("relevance_score") or 0
+        badge = _priority_badge(score)
+        title = _h(
+            (t.get("title") or "\u0628\u062f\u0648\u0646 \u0639\u0646\u0648\u0627\u0646")[:100]
+        )
+        org = _h(t.get("organisation") or "")
+        wilaya = _h(t.get("wilaya") or "")
+        deadline = t.get("deadline") or ""
+        days = _days_until(deadline)
+        products = _h(_format_products(t))
+        link = t.get("link") or ""
+
+        lines.append(f"{badge} | <b>{i}. {title}</b>")
+        if org:
+            lines.append(f"   \U0001f3e2 {org}")
+        if wilaya:
+            lines.append(f"   \U0001f4cd {wilaya}")
+        if deadline:
+            lines.append(f"   \U0001f4c5 {deadline} {days}")
+        if products:
+            lines.append(f"   \U0001f3f7\ufe0f {products}")
+        if link:
+            lines.append(
+                f'   \U0001f517 <a href="{_h(link)}">'
+                "\u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644</a>"
+            )
+        lines.append("\u2501" * 22)
+
     return "\n".join(lines)
 
 

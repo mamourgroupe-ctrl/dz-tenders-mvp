@@ -111,98 +111,6 @@ def test_apply_filter_no_matches():
         assert result == []
 
 
-def test_build_summary_message_counts_tenders_and_families():
-    """اختبار تعداد المناقصات وتوزيعها على العائلات."""
-    tenders = [
-        {
-            "title": "مناقصة توريد أنابيب PEHD",
-            "matched_families": [{"name_ar": "مواد البناء"}],
-        },
-        {
-            "title": "مناقصة صيانة طرق",
-            "matched_families": [{"name_ar": "البنية التحتية"}, {"name_ar": "مواد البناء"}],
-        },
-    ]
-
-    result = build_summary_message(tenders)
-
-    assert "🔔 <b>تقرير DZ-TENDERS</b>" in result
-    assert "📋 2 مناقصة جديدة:" in result
-    assert "• مواد البناء: 2" in result
-    assert "• البنية التحتية: 1" in result
-
-
-def test_build_summary_message_sorts_families_by_count_desc():
-    """اختبار ترتيب العائلات تنازليًا حسب عدد المطابقات."""
-    tenders = [
-        {"title": "أ", "matched_families": [{"name_ar": "أولى"}, {"name_ar": "ثالثة"}]},
-        {"title": "ب", "matched_families": [{"name_ar": "ثالثة"}]},
-    ]
-
-    result = build_summary_message(tenders)
-    lines = result.splitlines()
-    first_family_line = next(i for i, line in enumerate(lines) if line.startswith("• "))
-    family_lines = [line for line in lines[first_family_line:] if line.startswith("• ")]
-
-    assert family_lines == ["• ثالثة: 2", "• أولى: 1"]
-
-
-def test_build_summary_message_uses_fallback_family_name():
-    """اختبار اسم العائلة الافتراضي عند غياب name_ar."""
-    tenders = [{"title": "مناقصة", "matched_families": [{"code": "X1"}]}]
-
-    result = build_summary_message(tenders)
-
-    assert "• غير مصنّف: 1" in result
-
-
-def test_build_summary_message_lists_at_most_five_titles():
-    """اختبار اقتصار قائمة العناوين على أول 5 مناقصات."""
-    tenders = [{"title": f"مناقصة رقم {i}"} for i in range(1, 8)]
-
-    result = build_summary_message(tenders)
-    lines = result.splitlines()
-    separator_index = next(i for i, line in enumerate(lines) if "━" in line)
-    numbered = [line for line in lines[separator_index + 1 :] if line[:2].rstrip(".").isdigit()]
-
-    assert len(numbered) == 5
-    assert numbered[0] == "1. مناقصة رقم 1"
-    assert numbered[-1] == "5. مناقصة رقم 5"
-    assert "مناقصة رقم 6" not in result
-
-
-def test_build_summary_message_truncates_long_title():
-    """اختبار اقتصاص العنوان عند تجاوزه 80 حرفًا."""
-    long_title = "ط" * 120
-    tenders = [{"title": long_title}]
-
-    result = build_summary_message(tenders)
-
-    assert f"1. {'ط' * 80}" in result
-    assert f"1. {'ط' * 81}" not in result
-
-
-def test_build_summary_message_handles_missing_title_and_key():
-    """اختبار التعامل مع مناقصة بلا عنوان أو بلا مفتاح matched_families."""
-    tenders = [{}, {"title": "مناقصة صيانة"}]
-
-    result = build_summary_message(tenders)
-
-    assert "📋 2 مناقصة جديدة:" in result
-    assert "1. بدون عنوان" in result
-    assert "2. مناقصة صيانة" in result
-    assert "• " not in result
-
-
-def test_build_summary_message_empty_list():
-    """اختبار توليد التقرير عند عدم وجود مناقصات جديدة."""
-    result = build_summary_message([])
-
-    assert "📋 0 مناقصة جديدة:" in result
-    assert "\n━━━━━━━━━━━━━━━━━━" in result
-    assert result.strip().endswith("━━━━━━━━━━━━━━━━━━")
-
-
 def test_drop_reference_data_removes_samples_by_default():
     """البيانات المرجعية تُحذف افتراضياً حتى لا تُبلَّغ كصفقات حقيقية."""
     tenders = [
@@ -467,3 +375,103 @@ def test_T2_tests_still_pass_after_T1():
     assert build_notifier(AppConfig(dry_run=True)) is None
     partial = AppConfig(dry_run=False, telegram_bot_token="x", telegram_chat_id=None)
     assert build_notifier(partial) is None
+
+
+# --- build_summary_message tests (new format) ---
+
+
+def test_build_summary_message_empty_list():
+    """Empty list -> friendly empty message."""
+    result = build_summary_message([])
+    assert "DZ-TENDERS" in result
+    assert "\u0644\u0627 \u062a\u0648\u062c\u062f" in result  # "there is no"
+
+
+def test_build_summary_message_basic_card():
+    """One tender -> header + card with title."""
+    tenders = [{"title": "Tender X", "relevance_score": 90}]
+    result = build_summary_message(tenders)
+    assert "DZ-TENDERS" in result
+    assert "Tender X" in result
+    assert "P1" in result  # badge
+
+
+def test_build_summary_message_priority_counts():
+    """Priority summary shows P1/P2/P3 counts."""
+    tenders = [
+        {"title": "A", "relevance_score": 90},
+        {"title": "B", "relevance_score": 75},
+        {"title": "C", "relevance_score": 60},
+    ]
+    result = build_summary_message(tenders)
+    assert "P1: 1" in result
+    assert "P2: 1" in result
+    assert "P3: 1" in result
+
+
+def test_build_summary_message_missing_title_fallback():
+    """Tender without title -> fallback shown."""
+    tenders = [{}]
+    result = build_summary_message(tenders)
+    assert "\u0628\u062f\u0648\u0646 \u0639\u0646\u0648\u0627\u0646" in result  # "no title"
+
+
+def test_build_summary_message_max_five_cards():
+    """Only top 5 tenders are rendered."""
+    tenders = [{"title": f"T{i}", "relevance_score": 90 - i} for i in range(10)]
+    result = build_summary_message(tenders)
+    # أول 5 موجودة
+    for i in range(5):
+        assert f"T{i}" in result
+    # الباقي لا
+    for i in range(5, 10):
+        assert f"T{i}" not in result
+
+
+def test_build_summary_message_sorts_by_score():
+    """Higher score appears before lower."""
+    tenders = [
+        {"title": "Low", "relevance_score": 50},
+        {"title": "High", "relevance_score": 95},
+    ]
+    result = build_summary_message(tenders)
+    assert result.index("High") < result.index("Low")
+
+
+def test_build_summary_message_shows_wilaya():
+    """Wilaya appears in the card."""
+    tenders = [{"title": "T", "wilaya": "Alger", "relevance_score": 90}]
+    result = build_summary_message(tenders)
+    assert "Alger" in result
+
+
+def test_build_summary_message_shows_organisation():
+    """Organisation appears in the card."""
+    tenders = [{"title": "T", "organisation": "ONA", "relevance_score": 90}]
+    result = build_summary_message(tenders)
+    assert "ONA" in result
+
+
+def test_build_summary_message_days_remaining():
+    """Deadline shows days-remaining suffix."""
+    from datetime import date, timedelta
+
+    future = (date.today() + timedelta(days=15)).isoformat()
+    tenders = [{"title": "T", "deadline": future, "relevance_score": 90}]
+    result = build_summary_message(tenders)
+    assert "15" in result  # 15 days
+
+
+def test_build_summary_message_escapes_html_in_title():
+    """XSS attempt in title is escaped."""
+    tenders = [{"title": "<script>x</script>", "relevance_score": 90}]
+    result = build_summary_message(tenders)
+    assert "<script>" not in result
+    assert "&lt;script&gt;" in result
+
+
+def test_build_summary_message_has_link():
+    """Link appears as clickable <a href>."""
+    tenders = [{"title": "T", "link": "https://example.com/t", "relevance_score": 90}]
+    result = build_summary_message(tenders)
+    assert 'href="https://example.com/t"' in result
