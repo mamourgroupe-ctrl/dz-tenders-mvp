@@ -1,27 +1,94 @@
 {
   "metadata": {
-    "version": "1.0",
-    "last_updated": "2026-09-12",
-    "description": "قائمة المؤسسات والشركات المستهدفة لمنتجات خزانات PE وأنابيب PEHD و PVC"
+    "version": "2.0",
+    "last_updated": "2026-10-05",
+    "description": "قائمة المؤسسات والشركات المستهدفة لمنتجات خزانات PE وأنابيب PEHD و PVC",
+    "enriched_from": "تصنيف_نشاطات_التسويق_عربي_فرنسي.xlsx",
+    "changes": [
+      "wilayas.target: من 4 شمالية إلى 5 جنوبية + 3 شمالية",
+      "products: إضافة FITTINGS + توسيع PE_TANKS/PEHD/PVC بمرادفات",
+      "keywords: +3-5 كلمات لكل عائلة من Excel",
+      "sub_activities: 90 نشاطاً (placeholder)"
+    ]
   },
   "products": {
     "PE_TANKS": [
       "خزانات PE",
       "خزان PE",
       "خزانات بلاستيكية",
-      "réservoirs PE"
+      "خزان بلاستيكي",
+      "خزان منزلي",
+      "خزان أرضي",
+      "خزان مدفون",
+      "خزان احتياطي",
+      "خزان مياه",
+      "خزان مكافحة الحريق",
+      "réservoirs PE",
+      "réservoir PE",
+      "citerne PE",
+      "bâche à eau",
+      "réservoir d'eau",
+      "cuve de stockage",
+      "réservoir incendie",
+      "PE tank",
+      "water tank",
+      "storage tank"
     ],
     "PEHD_PIPES": [
       "أنابيب PEHD",
       "أنبوب PEHD",
       "PEHD",
-      "أنابيب بولي إيثيلين"
+      "بولي إيثيلين عالي الكثافة",
+      "أنابيب HDPE",
+      "HDPE",
+      "PE100",
+      "PE100-RC",
+      "tuyaux PEHD",
+      "tuyau PEHD",
+      "polyéthylène haute densité",
+      "conduite PEHD",
+      "canalisation PEHD",
+      "HDPE pipes",
+      "PE pipes"
     ],
     "PVC_PIPES": [
       "أنابيب PVC",
       "أنبوب PVC",
       "PVC",
-      "أنابيب بلاستيكية للصرف"
+      "بولي كلوريد الفينيل",
+      "PVC-U",
+      "PVC-O",
+      "PVC pression",
+      "PVC évacuation",
+      "أنابيب بلاستيكية للصرف",
+      "أنابيب صرف صحي",
+      "tuyaux PVC",
+      "tuyau PVC",
+      "polychlorure de vinyle",
+      "conduite PVC",
+      "canalisation PVC",
+      "PVC pipes"
+    ],
+    "FITTINGS": [
+      "وصلات PEHD",
+      "وصلات PVC",
+      "وصلات أنابيب",
+      "raccords PEHD",
+      "raccords PVC",
+      "raccords tuyaux",
+      "fittings",
+      "coude",
+      "té",
+      "réduction",
+      "صمامات",
+      "صمام",
+      "محابس",
+      "robinetterie",
+      "vannes",
+      "فلنجات",
+      "flasques",
+      "brides",
+      "flanges"
     ]
   },
   "families": [
@@ -48,7 +115,16 @@
         "élevage",
         "pépinière",
         "serre",
-        "palmier"
+        "palmier",
+        "ري محوري",
+        "زراعة صحراوية",
+        "زراعة النخيل",
+        "إنتاج أعلاف",
+        "تخزين منتجات فلاحية",
+        "بيوت بلاستيكية",
+        "irrigation pivot",
+        "culture saharienne",
+        "stockage agricole"
       ],
       "entities": [
         "وزارة الفلاحة والتنمية الريفية",
@@ -80,7 +156,16 @@
         "forage",
         "pompe",
         "adduction",
-        "traitement"
+        "traitement",
+        "لحام PEHD",
+        "اختبار شبكات",
+        "صيانة شبكات المياه",
+        "محطة ضخ",
+        "نقل مياه",
+        "adduction eau",
+        "station de pompage",
+        "entretien réseau",
+        "soudure PEHD"
       ],
       "entities": [
         "الجزائرية للمياه (ADE)",
@@ -111,7 +196,14 @@
         "BTPH",
         "assainissement",
         "voirie",
-        "réseaux"
+        "réseaux",
+        "شبكات المياه",
+        "محطات الضخ",
+        "أبراج المياه",
+        "châteaux d'eau",
+        "réseaux AEP",
+        "station de relevage",
+        "assainissement urbain"
       ],
       "entities": [
         "وزارة الأشغال العمومية",
@@ -184,7 +276,16 @@
         "pétrole",
         "gaz",
         "dessalement",
-        "cimenterie"
+        "cimenterie",
+        "خطوط أنابيب",
+        "نقل السوائل الصناعية",
+        "تحلية مياه البحر",
+        "محطة كهرباء",
+        "مصافي",
+        "pipeline",
+        "pétrochimie",
+        "raffinerie",
+        "dessalement eau mer"
       ],
       "entities": [
         "سوناطراك (Sonatrach)",
@@ -370,9 +471,13 @@
       "البيض سيدي الشيخ"
     ],
     "target": [
+      "الوادي",
+      "ورقلة",
+      "بسكرة",
+      "غرداية",
+      "أدرار",
       "الجزائر",
       "البليدة",
-      "بومرداس",
       "تيبازة"
     ],
     "priority": [
@@ -611,5 +716,12 @@
     "tourism_hospitality": "السياحية والفندقية والخدمية",
     "public_facilities": "مرافق ومنفعة عامة",
     "households_individuals": "السر والفراد"
+  },
+  "sub_activities": {
+    "version": "1.0",
+    "source": "تصنيف_نشاطات_التسويق_عربي_فرنسي.xlsx",
+    "note": "90 نشاطاً مفصلاً من ملف التسويق — للاستخدام المستقبلي في فلترة متقدمة.",
+    "count": 90,
+    "note_full": "التفاصيل الكاملة في ملف Excel الأصلي."
   }
 }
