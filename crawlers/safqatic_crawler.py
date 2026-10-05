@@ -21,7 +21,7 @@ LISTING_PATHS = [
     "index.php?type=2",  # Avis de consultation
 ]
 
-REFERENCE_RE = re.compile(r"N[°o]\s*:?\s*(\d{1,4})\s*/\s*(\d{4})", re.IGNORECASE)
+REFERENCE_RE = re.compile(r"N[°o]\s*:?\s*\d{1,4}[^\d]*?(20\d{2})", re.IGNORECASE)
 DETAIL_ID_RE = re.compile(r"id=(\d+)")
 PDF_OFFRE_RE = re.compile(r"docs/offres/.+\.pdf", re.IGNORECASE)
 
@@ -93,7 +93,7 @@ class SafqaticCrawler(BaseCrawler):
             return None
         m = REFERENCE_RE.search(text)
         if m:
-            return int(m.group(2))
+            return int(m.group(1))
         return None
 
     def parse_detail(self, html, detail_url):

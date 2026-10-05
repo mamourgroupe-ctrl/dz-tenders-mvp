@@ -91,3 +91,16 @@ def test_parse_detail_no_title(crawler):
     """HTML without meaningful <p> -> None."""
     html = "<html><body><p>short</p></body></html>"
     assert crawler.parse_detail(html, "http://x") is None
+
+
+def test_extract_year_handles_complex_reference(crawler):
+    """السنة تُلتقط مع فواصل معقدة."""
+    assert crawler._extract_year("Avis N°21/AT/DG/DAMP/DAM/2026.") == 2026
+    assert crawler._extract_year("Avis N°69/AT/DG/DAMP/DAM/2026") == 2026
+
+
+def test_extract_year_handles_standard_reference(crawler):
+    """الصيغة القياسية لا تزال تعمل."""
+    assert crawler._extract_year("N° : 05/2026") == 2026
+    assert crawler._extract_year("Appel d'Offres National N° 09-2024") == 2024
+    assert crawler._extract_year("N° 04-2023") == 2023
