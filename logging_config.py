@@ -1,4 +1,6 @@
 """Logging configuration with UTF-8 console support."""
+
+import contextlib
 import logging
 import sys
 from pathlib import Path
@@ -17,11 +19,9 @@ def _force_utf8_streams() -> None:
             continue
         reconfigure = getattr(stream, "reconfigure", None)
         if callable(reconfigure):
-            try:
+            # Stream may not support reconfiguration (e.g., pytest capture).
+            with contextlib.suppress(ValueError, OSError):
                 reconfigure(encoding="utf-8", errors="replace")
-            except (ValueError, OSError):
-                # Stream may not support reconfiguration (e.g., pytest capture).
-                pass
 
 
 def setup_logging(
