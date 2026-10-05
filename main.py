@@ -49,21 +49,36 @@ logging.basicConfig(
 logger = logging.getLogger("dz_tenders.main")
 
 
-def scrape_all_sources() -> list[dict]:
-    """جمع المناقصات من كل المصادر.
+#: (crawler_instance, enabled) tuples.
+#: Disabled sources are skipped with a log entry. Rationale:
+#: - SafqaticCrawler: active live source (poste & telecom, 2026)
+#: - ADECrawler: returns 500 Server Error (server-side, temporary)
+#: - ONACrawler: only reference (sample) data available
+#: - AlgeriaTendersCrawler: only reference (sample) data available
+#:
+#: To re-enable a source: flip False to True (no other change needed).
+CRAWLER_SOURCES = [
+    (SafqaticCrawler, True),
+    (ADECrawler, False),
+    (ONACrawler, False),
+    (AlgeriaTendersCrawler, False),
+]
 
-    مصادر Playwright (مثل Safqatic) تحتاج إغلاقاً صريحاً بعد كل استخدام،
-    لذلك تُستدعى close() في finally إن وُجدت.
+
+def scrape_all_sources() -> list[dict]:
+    """جمع المناقصات من المصادر المفعّلة.
+
+    كل مصدر قد يحتاج إغلاقاً صريحاً (Playwright)؛ تُستدعى close() في finally.
+    المصادر المعطّلة تُتخطّى مع تسجيل السبب.
     """
-    crawlers = [
-        ADECrawler(),
-        ONACrawler(),
-        AlgeriaTendersCrawler(),
-        SafqaticCrawler(),
-    ]
     all_tenders = []
-    for crawler in crawlers:
-        name = crawler.__class__.__name__
+    for crawler_cls, enabled in CRAWLER_SOURCES:
+        name = crawler_cls.__name__
+        if not enabled:
+            logger.info("⏭️  [%s] معطّل (enabled=False)", name)
+            continue
+
+        crawler = crawler_cls()
         try:
             logger.info("⏳ [%s] بدء...", name)
             results = crawler.run()
