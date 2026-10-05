@@ -58,7 +58,7 @@ def test_parse_detail_extracts_year(crawler):
     url = "https://www.safqatic.dz/detail_offre.php?id=83789"
     tender = crawler.parse_detail(html, url)
 
-    assert tender["published_date"] == "2026-01-01"
+    assert tender["published_date"] == "2026-12-31"
 
 
 def test_parse_detail_extracts_pdf(crawler):

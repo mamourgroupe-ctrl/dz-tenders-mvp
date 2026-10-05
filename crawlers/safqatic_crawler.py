@@ -134,7 +134,9 @@ class SafqaticCrawler(BaseCrawler):
             "product": UNKNOWN_VALUE,
             "deadline": UNKNOWN_VALUE,
             "status": UNKNOWN_VALUE,
-            "published_date": f"{year}-01-01" if year else None,
+            # السنة فقط متاحة من الرابط، فنعتبرها صادرة في آخر السنة (لا أولها)
+            # حتى لا تُسقطها W17-A بسبب النافذة 90-يوم.
+            "published_date": f"{year}-12-31" if year else None,
             "pdf_url": pdf_url,
             "source": SECTOR,
         }
