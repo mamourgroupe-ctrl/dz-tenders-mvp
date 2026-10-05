@@ -11,7 +11,12 @@ from dotenv import load_dotenv
 from config import AppConfig
 
 # ⬇️ استيرادات مشروعك الفعلي
-from crawlers import ADECrawler, AlgeriaTendersCrawler, ONACrawler
+from crawlers import (
+    ADECrawler,
+    AlgeriaTendersCrawler,
+    ONACrawler,
+    SafqaticCrawler,
+)
 from logging_config import setup_logging
 from notifications.base import NotificationManager
 from notifications.excel_report import build_excel_report
@@ -45,16 +50,34 @@ logger = logging.getLogger("dz_tenders.main")
 
 
 def scrape_all_sources() -> list[dict]:
-    """جمع المناقصات من كل المصادر."""
-    crawlers = [ADECrawler(), ONACrawler(), AlgeriaTendersCrawler()]
+    """جمع المناقصات من كل المصادر.
+
+    مصادر Playwright (مثل Safqatic) تحتاج إغلاقاً صريحاً بعد كل استخدام،
+    لذلك تُستدعى close() في finally إن وُجدت.
+    """
+    crawlers = [
+        ADECrawler(),
+        ONACrawler(),
+        AlgeriaTendersCrawler(),
+        SafqaticCrawler(),
+    ]
     all_tenders = []
     for crawler in crawlers:
+        name = crawler.__class__.__name__
         try:
+            logger.info("⏳ [%s] بدء...", name)
             results = crawler.run()
-            logger.info(f"  • {crawler.__class__.__name__}: {len(results)} مناقصة")
+            logger.info("  • %s: %d مناقصة", name, len(results))
             all_tenders.extend(results)
         except Exception as e:
-            logger.error(f"  [!] خطأ في {crawler.__class__.__name__}: {e}")
+            logger.error("  [!] خطأ في %s: %s", name, e)
+        finally:
+            closer = getattr(crawler, "close", None)
+            if callable(closer):
+                try:
+                    closer()
+                except Exception as e:
+                    logger.debug("close() failed for %s: %s", name, e)
 
     # إزالة التكرار
     unique = list({t.get("title", ""): t for t in all_tenders if t.get("title")}.values())

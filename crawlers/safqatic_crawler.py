@@ -1,4 +1,5 @@
 """Safqatic crawler — poste & telecom tenders via Playwright."""
+
 import contextlib
 import logging
 import re
@@ -45,9 +46,7 @@ class SafqaticCrawler(BaseCrawler):
         from playwright.sync_api import sync_playwright
 
         self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(
-            channel="msedge", headless=True
-        )
+        self._browser = self._playwright.chromium.launch(channel="msedge", headless=True)
 
     def close(self):
         """Close browser and Playwright."""
@@ -143,10 +142,7 @@ class SafqaticCrawler(BaseCrawler):
     def parse_tenders(self, html):
         """Parse listing page -> list of detail URLs (for tests)."""
         ids = self._extract_detail_ids(html)
-        return [
-            urljoin(self.base_url, f"detail_offre.php?id={tid}")
-            for tid in ids
-        ]
+        return [urljoin(self.base_url, f"detail_offre.php?id={tid}") for tid in ids]
 
     def run(self):
         """Fetch all listings + details, return tenders."""
@@ -160,9 +156,7 @@ class SafqaticCrawler(BaseCrawler):
                 logger.info("  found %d tenders", len(ids))
 
                 for tid in ids:
-                    detail_url = urljoin(
-                        self.base_url, f"detail_offre.php?id={tid}"
-                    )
+                    detail_url = urljoin(self.base_url, f"detail_offre.php?id={tid}")
                     detail_html = self.fetch_page(detail_url)
                     tender = self.parse_detail(detail_html, detail_url)
                     if tender:

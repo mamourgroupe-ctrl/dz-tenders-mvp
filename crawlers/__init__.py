@@ -3,6 +3,7 @@ from .algeria_tenders_crawler import AlgeriaTendersCrawler
 from .base_crawler import BaseCrawler
 from .marches_publics_crawler import MarchesPublicsCrawler
 from .ona_crawler import ONACrawler
+from .safqatic_crawler import SafqaticCrawler
 
 __all__ = [
     "BaseCrawler",
@@ -10,4 +11,5 @@ __all__ = [
     "ONACrawler",
     "AlgeriaTendersCrawler",
     "MarchesPublicsCrawler",
+    "SafqaticCrawler",
 ]

@@ -1,4 +1,5 @@
 """Tests for SafqaticCrawler (offline, using fixtures)."""
+
 from pathlib import Path
 
 import pytest
