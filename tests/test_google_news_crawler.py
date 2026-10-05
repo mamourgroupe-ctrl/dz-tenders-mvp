@@ -63,22 +63,24 @@ def test_invalid_xml_returns_empty(crawler):
 
 def test_non_tender_items_filtered(crawler):
     """Items without tender keywords are dropped."""
-    xml = """<?xml version="1.0"?>
-    <rss><channel>
-      <item>
-        <title>Weather forecast for Algiers</title>
-        <link>https://example.com/weather</link>
-        <pubDate>Mon, 14 Sep 2026 07:00:00 GMT</pubDate>
-      </item>
-      <item>
-        <title>tender-test-line</title>
-        <link>https://example.com/tender</link>
-        <pubDate>Mon, 14 Sep 2026 07:00:00 GMT</pubDate>
-      </item>
-    </channel></rss>"""
+    xml = (
+        '<?xml version="1.0"?>'
+        "<rss><channel>"
+        "<item>"
+        "<title>Weather forecast</title>"
+        "<link>https://example.com/w</link>"
+        "<pubDate>Mon, 14 Sep 2026 07:00:00 GMT</pubDate>"
+        "</item>"
+        "<item>"
+        "<title>appel d'offres test item</title>"
+        "<link>https://example.com/t</link>"
+        "<pubDate>Mon, 14 Sep 2026 07:00:00 GMT</pubDate>"
+        "</item>"
+        "</channel></rss>"
+    )
     tenders = crawler.parse_feed(xml)
     assert len(tenders) == 1
-    assert "\u0645\u0646\u0627\u0642\u0635\u0629" in tenders[0]["title"]
+    assert "appel" in tenders[0]["title"]
 
 
 def test_source_constant(crawler):

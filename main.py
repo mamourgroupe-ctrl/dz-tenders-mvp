@@ -14,6 +14,7 @@ from config import AppConfig
 from crawlers import (
     ADECrawler,
     AlgeriaTendersCrawler,
+    GoogleNewsCrawler,
     ONACrawler,
     SafqaticCrawler,
 )
@@ -59,6 +60,7 @@ logger = logging.getLogger("dz_tenders.main")
 #: To re-enable a source: flip False to True (no other change needed).
 CRAWLER_SOURCES = [
     (SafqaticCrawler, True),
+    (GoogleNewsCrawler, True),
     (ADECrawler, False),
     (ONACrawler, False),
     (AlgeriaTendersCrawler, False),
