@@ -20,6 +20,8 @@ from crawlers import (
 )
 from logging_config import setup_logging
 from notifications.base import NotificationManager
+from notifications.digest import build_digest_html
+from notifications.email_sender import send_digest_email
 from notifications.excel_report import build_excel_report
 from notifications.telegram_channel import TelegramChannel
 from storage.db import TenderStore
@@ -205,10 +207,13 @@ def run():
     db_path = resolve_db_path(config.db_path)
     report_path: str | None = None
 
+    pending_for_digest: list[dict] = []
+
     def build_report(pending: list[dict]) -> None:
         """توليد تقرير Excel من الصفقات الجديدة (داخل القفل)."""
         nonlocal report_path
         report_path = build_excel_report(pending)
+        pending_for_digest.extend(pending)
         logger.info("📄 تقرير Excel: %s", report_path)
 
     def send(new_tenders: list[dict]) -> tuple[bool, str]:
@@ -243,6 +248,15 @@ def run():
     if outcome.status == STATUS_LOCKED:
         logger.warning("توقّفت الدورة: قاعدة البيانات مشغولة في عملية أخرى (بلا كتابة)")
         raise SystemExit(LOCK_TIMEOUT_EXIT_CODE)
+
+    # إرسال ملخص HTML يومي عبر SMTP (خارج القفل)
+    if pending_for_digest and not dry_run:
+        digest_html = build_digest_html(pending_for_digest)
+        digest_subject = f"DZ Tenders Digest - {len(pending_for_digest)} items"
+        if send_digest_email(digest_html, digest_subject):
+            logger.info("📧 Digest email sent (%d tenders)", len(pending_for_digest))
+        else:
+            logger.info("📧 Digest email skipped (SMTP not configured)")
 
     logger.info(f"📊 إجمالي المناقصات المسجلة: {outcome.total}")
     logger.info("=" * 60)
