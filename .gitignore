@@ -59,3 +59,6 @@ check_dbs.py
 
 # Diagnostic scripts
 check_dbs.py
+
+# Local DB backups
+storage/*.bak-*
