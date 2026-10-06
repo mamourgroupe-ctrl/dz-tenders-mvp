@@ -101,6 +101,7 @@ class TenderFilter:
         targets_file: str = TARGETS_FILE,
         freshness_window_days: int | None = None,
         freshness_enabled: bool | None = None,
+        require_products: bool | None = None,
     ):
         """تهيئة المرشِّح.
 
@@ -122,6 +123,13 @@ class TenderFilter:
             _env_bool("FRESHNESS_ENABLED", FRESHNESS_ENABLED_DEFAULT)
             if freshness_enabled is None
             else bool(freshness_enabled)
+        )
+        #: عند True، تُقبل فقط المناقصات التي تذكر منتجاً واحداً على الأقل
+        #: (PVC, PEHD, خزانات PE). هذا يحصر النشاط على تخصص الشركة.
+        self.require_products = (
+            _env_bool("REQUIRE_PRODUCTS", False)
+            if require_products is None
+            else bool(require_products)
         )
 
     def _load_targets(self) -> dict:
@@ -300,6 +308,10 @@ class TenderFilter:
         if not matched_families and not matched_products:
             return None
 
+        # حصر صارم: يجب مطابقة منتج واحد على الأقل
+        if self.require_products and not matched_products:
+            return None
+
         total_score = sum(f["score"] for f in matched_families) + (
             self.WEIGHT_PRODUCT * len(matched_products)
         )
@@ -418,6 +430,11 @@ class TenderFilter:
         for tender in tenders:
             title = tender.get("title", "")
             if tender.get("is_sample"):
+                kept.append(tender)
+                continue
+            # في وضع الحصر الصارم، لا نُسقط أخبار GoogleNews لأن published_date
+            # يعكس تاريخ الخبر لا آخر أجل المناقصة.
+            if self.require_products and tender.get("source") == "news_aggregator":
                 kept.append(tender)
                 continue
             deadline = self._parse_deadline(tender.get("deadline"))
