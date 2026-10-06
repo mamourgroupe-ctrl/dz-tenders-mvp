@@ -32,6 +32,10 @@ storage/*.sqlite
 exports/
 storage/exports/
 
+# Frontend dependencies and build metadata
+node_modules/
+*.tsbuildinfo
+
 # Build files
 build/
 dist/

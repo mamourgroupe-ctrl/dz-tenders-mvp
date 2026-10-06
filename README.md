@@ -26,6 +26,36 @@ DZ-TENDERS-MVP is a Python project that:
 ![Telegram](https://img.shields.io/badge/Telegram-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)
 ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
 
+## Frontend Dashboard
+
+The repository includes a React 18 + TypeScript dashboard for exploring Algerian tenders. It runs with a local mock API by default and can be switched to the FastAPI service when it is available.
+
+### Run the dashboard
+
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173). The dashboard includes the overview, tender search, tender detail drawer with Leaflet map, favorites, dark mode, and statistics pages.
+
+### Connect the FastAPI service
+
+Create a frontend `.env` file (or export the variable before starting Vite):
+
+```bash
+VITE_API_URL=http://localhost:8000/api
+```
+
+The data layer requests `/api/tenders`, `/api/tenders/:id`, `/api/stats/summary`, `/api/stats/by-wilaya`, `/api/stats/by-product`, and `/api/stats/timeline`. If `VITE_API_URL` is omitted, realistic local data for 30 Algerian tenders is used. The API URL is intentionally isolated in `src/lib/api.ts`, so the mock layer can be removed without changing the UI.
+
+For a production build:
+
+```bash
+npm run build
+npm run preview
+```
+
 ## Project Structure
 
 ## Blocked Notifications · إدارة الإشعارات المحجوبة
