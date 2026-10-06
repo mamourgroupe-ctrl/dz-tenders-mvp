@@ -66,3 +66,6 @@ check_dbs.py
 
 # Local DB backups
 storage/*.bak-*
+
+# Marches Publics session
+storage/marches_state.json
