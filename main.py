@@ -16,6 +16,7 @@ from crawlers import (
     ADECrawler,
     AlgeriaTendersCrawler,
     GoogleNewsCrawler,
+    MarchesPublicsAuthCrawler,
     ONACrawler,
     SafqaticCrawler,
 )
@@ -64,6 +65,7 @@ logger = logging.getLogger("dz_tenders.main")
 CRAWLER_SOURCES = [
     (SafqaticCrawler, True),
     (GoogleNewsCrawler, True),
+    (MarchesPublicsAuthCrawler, True),  # requires storage/marches_state.json
     (ADECrawler, False),
     (ONACrawler, False),
     (AlgeriaTendersCrawler, False),

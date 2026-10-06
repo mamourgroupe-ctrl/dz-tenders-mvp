@@ -32,6 +32,10 @@ storage/*.sqlite
 exports/
 storage/exports/
 
+# Frontend dependencies and build metadata
+node_modules/
+*.tsbuildinfo
+
 # Build files
 build/
 dist/
@@ -62,3 +66,6 @@ check_dbs.py
 
 # Local DB backups
 storage/*.bak-*
+
+# Marches Publics session
+storage/marches_state.json
