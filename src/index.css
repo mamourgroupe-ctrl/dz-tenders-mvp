@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  html { font-family: 'Cairo', 'Tajawal', sans-serif; direction: rtl; }
+  body { margin: 0; min-width: 320px; background: #f8fafc; color: #172b4d; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; }
+  button { cursor: pointer; }
+  ::selection { background: rgba(26, 84, 144, .18); }
+  .dark body { background: #020617; color: #f8fafc; }
+}
+
+@layer components {
+  .filter-input { @apply h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-ink outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100; }
+}
+
+.leaflet-container { z-index: 0; font-family: 'Cairo', sans-serif; }
+.leaflet-control-attribution { font-size: 8px !important; }
+
+/* Keep scrollbar subtle inside data-dense panels. */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
