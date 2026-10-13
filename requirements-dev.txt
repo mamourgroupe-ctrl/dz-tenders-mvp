@@ -3,3 +3,4 @@ ruff
 mypy
 python-dotenv
 debugpy
+httpx>=0.27,<0.29  # required by fastapi.testclient

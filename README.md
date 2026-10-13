@@ -41,18 +41,84 @@ Open [http://localhost:5173](http://localhost:5173). The dashboard includes the 
 
 ### Connect the FastAPI service
 
-Create a frontend `.env` file (or export the variable before starting Vite):
+The read-only FastAPI backend lives in `api/` (`api/main.py`, factory
+`create_app`). It serves the existing SQLite `tenders` table — it never
+creates, migrates, or writes to the database.
+
+#### Backend setup
 
 ```bash
-VITE_API_URL=http://localhost:8000/api
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+# The database must already exist (created by the collection pipeline,
+# e.g. `python main.py` / `TenderDatabase`). The API will not create it:
+# a missing database yields HTTP 503 `database_unavailable`.
+.venv/bin/uvicorn api.main:app --host 0.0.0.0 --port 8000
+curl http://localhost:8000/health          # {"status":"ok","database":"available","tenders":N}
+curl "http://localhost:8000/api/tenders?page=1&page_size=20"
 ```
 
-The data layer requests `/api/tenders`, `/api/tenders/:id`, `/api/stats/summary`, `/api/stats/by-wilaya`, `/api/stats/by-product`, and `/api/stats/timeline`. If `VITE_API_URL` is omitted, realistic local data for 30 Algerian tenders is used. The API URL is intentionally isolated in `src/lib/api.ts`, so the mock layer can be removed without changing the UI.
+Environment variables (see `.env.example`, empty placeholders only):
 
-> Note: the FastAPI/HTTP service behind `/api/*` is **not implemented in this
-> repository yet** (no `api.py`/`app.py` exists in any branch). The dashboard
-> above therefore runs against the local mock dataset; `VITE_API_URL` is the
-> switch that will point it at the service once it exists.
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DB_PATH` | `storage/tenders.db` (repo-root relative) | SQLite file opened read-only (`mode=ro`) |
+| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated allowed origins; credentials are never enabled |
+| `PORT` | `8000` locally | Hosting port used by the `Procfile` command |
+
+Endpoints (all `GET`, public-read, unauthenticated — only tender
+listings collected for publication are exposed):
+
+| Endpoint | Response |
+| --- | --- |
+| `GET /health`, `GET /api/health` | `{"status", "database", "tenders"}`; 503 when the DB is unavailable |
+| `GET /api/tenders?search=&wilaya=&product=PVC_PIPES\|PEHD_PIPES\|PE_TANKS&priority=1..3&date_from=&date_to=&page=&page_size=` | `{"items": [Tender], "total", "page", "pageSize", "pages"}` (`page_size` max 100) |
+| `GET /api/tenders/{id}` | One `Tender`, or 404 |
+| `GET /api/stats/summary` | `{"total", "active", "priority1", "priority2", "priority3", "change"}` |
+| `GET /api/stats/by-wilaya` | `[{"wilaya", "count", "percentage"}]` |
+| `GET /api/stats/by-product` | `[{"product", "label", "count", "color"}]` |
+| `GET /api/stats/timeline` | Last 30 days `[{"date", "label", "tenders"}]`, zeros included, no invented baseline |
+
+Errors always use `{"error": {"code", "message", "details": [...]}}`
+(422 `validation_error`, 404 `not_found`, 503 `database_unavailable`,
+500 `internal_error`) without stack traces, SQL, or filesystem paths.
+
+Schema mapping (`api/mapping.py`): the single stored `title` becomes
+`titleAr` (Arabic) or `titleFr` (Latin, mirrored into `titleAr` for the
+heading); `publicationDate` is the stored `first_seen` date;
+`score = relevance_score`; `priority` reuses the project thresholds
+(>=85 → 1, >=70 → 2, else 3); `status` derives from the real `deadline`;
+`products` are recognized from the crawler free-text `product` column.
+Coordinates, estimated value, official reference, description and
+source name are **not stored**, so the API returns `null` for them and
+the dashboard renders explicit "not available" states — they are never
+fabricated.
+
+#### Frontend setup
+
+```bash
+npm install
+VITE_API_URL=http://localhost:8000/api npm run dev   # real API mode
+# or, equivalently, proxy mode:
+VITE_API_URL=/api npm run dev                       # Vite proxies /api → :8000
+npm run dev                                          # explicit mock mode (no API URL)
+```
+
+Known limitations: the monthly comparison on the Statistics page is
+limited to the API's 30-day timeline in real mode (no previous-period
+series is stored), `organisationShort` repeats the stored organisation
+name (no acronym is stored), and product recognition depends on the
+crawler free-text `product` column, so unrecognized text yields an
+empty `products` list rather than a guess.
+
+Mock data is an explicit development mode used **only** when
+`VITE_API_URL` is omitted. When an API URL is configured, failures are
+shown as error states instead of silently falling back to mock data,
+and win-rate/outcome widgets are hidden because outcomes are not
+stored. Tests: `.venv/bin/python -m pytest` (API tests use temporary
+synthetic databases only). Deployment: `Procfile` runs
+`uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}`; the process
+requires a pre-initialized `DB_PATH` file to answer anything but 503.
 
 ### Filter diagnosis
 
