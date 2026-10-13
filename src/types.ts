@@ -9,19 +9,26 @@ export interface Tender {
   organisation: string
   organisationShort: string
   wilaya: string
-  deadline: string
+  /** ISO date, or null when the stored deadline is missing/unparseable. */
+  deadline: string | null
+  /** Date the system first stored the tender (DB ``first_seen``). */
   publicationDate: string
   products: Product[]
   score: number
   priority: Priority
   status: TenderStatus
-  description: string
-  source: string
-  sourceUrl: string
-  latitude: number
-  longitude: number
-  reference: string
-  estimatedValue: string
+  /** Null from the real API: SQLite does not store a description. */
+  description: string | null
+  /** Null from the real API: SQLite does not store a source name. */
+  source: string | null
+  sourceUrl: string | null
+  /** Null from the real API: coordinates are never fabricated. */
+  latitude: number | null
+  longitude: number | null
+  /** Null from the real API: SQLite does not store an official reference. */
+  reference: string | null
+  /** Null from the real API: SQLite does not store an estimated value. */
+  estimatedValue: string | null
 }
 
 export interface TenderFilters {

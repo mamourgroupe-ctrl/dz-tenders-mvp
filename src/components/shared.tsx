@@ -24,7 +24,8 @@ export function cn(...classes: Array<string | false | null | undefined>): string
   return classes.filter(Boolean).join(' ')
 }
 
-export function formatDate(value: string): string {
+export function formatDate(value: string | null): string {
+  if (!value) return 'غير محدد'
   return new Date(`${value}T12:00:00`).toLocaleDateString('ar-DZ', {
     day: 'numeric',
     month: 'long',
@@ -32,7 +33,8 @@ export function formatDate(value: string): string {
   })
 }
 
-export function formatDateCompact(value: string): string {
+export function formatDateCompact(value: string | null): string {
+  if (!value) return 'غير محدد'
   return new Date(`${value}T12:00:00`).toLocaleDateString('ar-DZ', {
     day: '2-digit',
     month: 'short',
@@ -40,7 +42,8 @@ export function formatDateCompact(value: string): string {
   })
 }
 
-export function getDaysRemaining(deadline: string): number {
+export function getDaysRemaining(deadline: string | null): number {
+  if (!deadline) return 0
   const today = new Date('2026-10-06T12:00:00')
   const end = new Date(`${deadline}T23:59:59`)
   return Math.ceil((end.getTime() - today.getTime()) / 86_400_000)
