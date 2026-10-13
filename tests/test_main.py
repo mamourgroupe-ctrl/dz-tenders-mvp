@@ -343,6 +343,11 @@ def test_smart_scraper_skips_blocked_tender(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr("run_smart_scraper.SmartCrawler", FakeCrawler)
     monkeypatch.setattr("run_smart_scraper.TelegramNotifier", FakeNotifier)
     monkeypatch.setattr("run_smart_scraper.TenderStore", lambda: store)
+    # منذ W7-b يمرّ الإرسال عبر storage.delivery.deliver()، وهو لا يستدعي
+    # دالة الإرسال إلا عند وجود TELEGRAM_BOT_TOKEN (معالجة T2 لغياب
+    # الاعتماد). هذا الاختبار يتحقّق من استثناء الصفقة المحجوبة، فيلزمه
+    # رمز وهمي ليصل إلى مسار الإرسال.
+    monkeypatch.setattr("run_smart_scraper.TELEGRAM_BOT_TOKEN", "test-token")
     monkeypatch.setattr(sys, "argv", ["run_smart_scraper.py", "1", "5"])
 
     smart_main()

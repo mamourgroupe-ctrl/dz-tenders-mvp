@@ -49,6 +49,21 @@ VITE_API_URL=http://localhost:8000/api
 
 The data layer requests `/api/tenders`, `/api/tenders/:id`, `/api/stats/summary`, `/api/stats/by-wilaya`, `/api/stats/by-product`, and `/api/stats/timeline`. If `VITE_API_URL` is omitted, realistic local data for 30 Algerian tenders is used. The API URL is intentionally isolated in `src/lib/api.ts`, so the mock layer can be removed without changing the UI.
 
+> Note: the FastAPI/HTTP service behind `/api/*` is **not implemented in this
+> repository yet** (no `api.py`/`app.py` exists in any branch). The dashboard
+> above therefore runs against the local mock dataset; `VITE_API_URL` is the
+> switch that will point it at the service once it exists.
+
+### Filter diagnosis
+
+The tender classifier normalizes Arabic and French text (hamza forms, diacritics,
+tatweel, Latin case), reads nested crawler schemas (`title_ar`, `products` as a
+list or mapping, `objet`, …), and reports explicit rejection reasons instead of
+silently returning zero results. See
+[`docs/TENDER_FILTER_DIAGNOSTIC.md`](docs/TENDER_FILTER_DIAGNOSTIC.md) for the
+root-cause analysis, verification commands, and the checklist for zero-result
+runs.
+
 For a production build:
 
 ```bash
