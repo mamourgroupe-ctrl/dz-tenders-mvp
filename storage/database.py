@@ -174,7 +174,14 @@ class TenderDatabase:
         return ",".join(ids)
 
     def add_tender(self, tender: dict) -> bool:
-        """إضافة مناقصة. Returns True إذا كانت جديدة، False إذا مكررة."""
+        """إضافة مناقصة. Returns True إذا كانت جديدة، False إذا مكررة.
+
+        The insert is a single atomic ``INSERT ... ON CONFLICT DO NOTHING``
+        guarded by the ``UNIQUE(fingerprint)`` constraint. Two crawler runs
+        racing on the same tender therefore cannot both report an insert and
+        cannot raise ``IntegrityError``: exactly one wins, the other only
+        refreshes ``last_seen``.
+        """
         fp = self._fingerprint(tender)
         now = datetime.now().isoformat()
 
@@ -182,24 +189,14 @@ class TenderDatabase:
         families_str = self._families_to_db_value(families, fp)
 
         with self._connect() as conn:
-            cur = conn.execute("SELECT id FROM tenders WHERE fingerprint = ?", (fp,))
-            existing = cur.fetchone()
-
-            if existing:
-                conn.execute(
-                    "UPDATE tenders SET last_seen = ? WHERE fingerprint = ?",
-                    (now, fp),
-                )
-                conn.commit()
-                return False
-
-            conn.execute(
+            cursor = conn.execute(
                 """
                 INSERT INTO tenders (
                     fingerprint, title, organisation, wilaya, product,
                     deadline, status, link, relevance_score,
                     matched_families, first_seen, last_seen, notified
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                ON CONFLICT(fingerprint) DO NOTHING
                 """,
                 (
                     fp,
@@ -216,8 +213,14 @@ class TenderDatabase:
                     now,
                 ),
             )
+            inserted = cursor.rowcount == 1
+            if not inserted:
+                conn.execute(
+                    "UPDATE tenders SET last_seen = ? WHERE fingerprint = ?",
+                    (now, fp),
+                )
             conn.commit()
-            return True
+            return inserted
 
     def mark_notified(self, tender: dict):
         """تحديد المناقصة كـ 'تم إشعارها'"""

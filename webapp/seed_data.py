@@ -2,9 +2,12 @@
 
 Facts policy:
 
-* The 58 wilayas below are the official Algerian wilayas (codes 01–58, 2019
-  reform). The brief mentions 69; the extra 11 are **not invented** — an
-  override file can be supplied through ``APP_WILAYAS_FILE``.
+* The 69 wilayas below are the official Algerian wilayas. Codes 01–58 date from
+  the November 2019 reform; codes 59–69 were created by Law 26-06 (Journal
+  Officiel no. 25, 5 April 2026) and named by Presidential Decree 26-206
+  (Journal Officiel no. 40, 3 June 2026). During the transition the mother
+  wilayas keep administering them until 31 December 2026. A client-supplied
+  list can still replace the defaults through ``APP_WILAYAS_FILE``.
 * Issuers are real public institutions, used only as sample references.
 * Every demonstration announcement is flagged ``is_sample=True`` and renders a
   visible "نموذج" badge; source URLs use the reserved ``example.dz`` domain.
@@ -15,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
-#: (code, slug, name_ar, name_fr) — official 58 wilayas.
+#: (code, slug, name_ar, name_fr) — official 69 wilayas (2026).
 WILAYAS: list[tuple[str, str, str, str]] = [
     ("01", "adrar", "أدرار", "Adrar"),
     ("02", "chlef", "الشلف", "Chlef"),
@@ -75,6 +78,18 @@ WILAYAS: list[tuple[str, str, str, str]] = [
     ("56", "djanet", "جانت", "Djanet"),
     ("57", "el-mghair", "المغير", "El M'Ghair"),
     ("58", "el-meniaa", "المنيعة", "El Meniaa"),
+    # Wilayas created by Law 26-06 (2026); mother wilaya in parentheses.
+    ("59", "aflou", "أفلو", "Aflou"),  # Laghouat (03)
+    ("60", "barika", "بريكة", "Barika"),  # Batna (05)
+    ("61", "el-kantara", "القنطرة", "El Kantara"),  # Biskra (07)
+    ("62", "bir-el-ater", "بئر العاتر", "Bir El Ater"),  # Tébessa (12)
+    ("63", "el-aricha", "العريشة", "El Aricha"),  # Tlemcen (13)
+    ("64", "ksar-chellala", "قصر الشلالة", "Ksar Chellala"),  # Tiaret (14)
+    ("65", "ain-ouessara", "عين وسارة", "Aïn Ouessara"),  # Djelfa (17)
+    ("66", "messaad", "مسعد", "Messaad"),  # Djelfa (17)
+    ("67", "ksar-el-boukhari", "قصر البخاري", "Ksar El Boukhari"),  # Médéa (26)
+    ("68", "bou-saada", "بوسعادة", "Bou Saâda"),  # M'Sila (28)
+    ("69", "el-abiodh-sidi-cheikh", "الأبيض سيدي الشيخ", "El Abiodh Sidi Cheikh"),
 ]
 
 #: (slug, name_ar, name_fr, sort_order) — proposed taxonomy, client-editable.

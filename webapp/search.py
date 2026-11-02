@@ -1,9 +1,17 @@
 """Arabic-aware announcement search.
 
-SQLite FTS5 is the primary engine when available (``ANN_FTS``); otherwise the
-same normalised query runs against ``announcements.search_text`` with a literal
-``LIKE``. Both paths share the same filters, sorting and pagination so tests can
-assert identical result sets.
+Three interchangeable strategies share the same filters, sorting, pagination
+and result object:
+
+* **PostgreSQL** — ``to_tsvector('simple', search_text) @@ to_tsquery(...)`` on
+  the normalised text, optionally widened with ``pg_trgm`` similarity; a GIN
+  expression index and a trigram index make it fast.
+* **SQLite FTS5** — ``announcement_fts`` with prefix terms and ``bm25`` ranking.
+* **LIKE fallback** — escaped ``LIKE`` over the same normalised text, used when
+  neither full-text engine is available (small deployments, tests).
+
+Every strategy receives the *same* Arabic-normalised query, so spelling
+variants behave identically across backends.
 """
 
 from __future__ import annotations
@@ -19,6 +27,7 @@ from sqlalchemy import (
     String,
     Table,
     func,
+    or_,
     select,
     text,
 )
@@ -28,7 +37,7 @@ from sqlalchemy.sql import ColumnElement
 from webapp.db import FTS_TABLE
 from webapp.enums import AnnouncementStatus, AnnouncementType
 from webapp.models import Announcement, Issuer, Sector
-from webapp.text import build_fts_query, escape_like, normalize_search
+from webapp.text import build_fts_query, build_tsquery, escape_like, normalize_search
 
 #: Statuses visible on the public site.
 PUBLIC_STATUSES = (AnnouncementStatus.PUBLISHED, AnnouncementStatus.ARCHIVED)
@@ -88,6 +97,7 @@ class SearchResult:
     per_page: int = DEFAULT_PER_PAGE
     pages: int = 1
     used_fts: bool = False
+    strategy: str = "like"
     normalized_query: str = ""
 
     @property
@@ -145,6 +155,56 @@ def _fts_available(db: Session) -> bool:
     return available
 
 
+def _backend_name(db: Session) -> str:
+    """Return the SQLAlchemy dialect name (``sqlite``, ``postgresql``…)."""
+    bind = db.get_bind()
+    return bind.dialect.name
+
+
+def _pg_trgm_available(db: Session) -> bool:
+    """Whether the optional ``pg_trgm`` extension is installed."""
+    cached = getattr(db, "_dz_pg_trgm", None)
+    if cached is not None:
+        return bool(cached)
+    try:
+        available = bool(
+            db.scalar(text("SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm'"))
+        )
+    except Exception:  # pragma: no cover - older/limited Postgres
+        available = False
+    db._dz_pg_trgm = available  # type: ignore[attr-defined]
+    return available
+
+
+def _postgres_search(db: Session, normalized: str) -> tuple[ColumnElement[bool], list]:
+    """Build a tsvector condition (plus optional trigram widening) and ranks.
+
+    Args:
+        db: Session bound to PostgreSQL.
+        normalized: Arabic-normalised query (tokens separated by spaces).
+
+    Returns:
+        A ``WHERE`` condition and the relevance ``ORDER BY`` expressions.
+    """
+    tsquery = build_tsquery(normalized)
+    vector = func.to_tsvector("simple", Announcement.search_text)
+    query = func.to_tsquery("simple", tsquery)
+    full_text = vector.op("@@")(query)
+
+    if _pg_trgm_available(db):
+        fuzzy = func.similarity(Announcement.search_text, normalized) > 0.12
+        condition = or_(full_text, fuzzy)
+        order = [
+            func.ts_rank(vector, query).desc(),
+            func.similarity(Announcement.search_text, normalized).desc(),
+            Announcement.publish_date.desc(),
+        ]
+    else:  # pragma: no cover - exercised only without pg_trgm
+        condition = full_text
+        order = [func.ts_rank(vector, query).desc(), Announcement.publish_date.desc()]
+    return condition, order
+
+
 def _eager_options() -> tuple:
     return (
         selectinload(Announcement.sectors),
@@ -194,8 +254,10 @@ def _join_fts(stmt: Select, fts_query: str) -> Select:
     )
 
 
-def _order_clause(sort: str, *, ranked: bool):
+def _order_clause(sort: str, *, ranked: bool, rank_order: list | None = None):
     if sort == "relevance" and ranked:
+        if rank_order:
+            return rank_order
         return [text(f"bm25({FTS_TABLE}) ASC")]
     if sort == "oldest":
         return [Announcement.publish_date.asc(), Announcement.id.asc()]
@@ -237,21 +299,34 @@ def search_announcements(
     stmt = _base_select()
     count_stmt = select(func.count(func.distinct(Announcement.id)))
 
+    backend = _backend_name(db)
+    rank_order: list | None = None
     if normalized:
-        fts_query = build_fts_query(filters.q)
-        use_fts = bool(filters.q) and _fts_available(db)
-        if use_fts and fts_query:
-            stmt = _join_fts(stmt, fts_query)
-            count_stmt = _join_fts(count_stmt, fts_query)
-            ranked = True
-        else:
-            use_fts = False
-            condition = _like_condition(normalized)
+        if backend.startswith("postgres"):
+            condition, rank_order = _postgres_search(db, normalized)
             stmt = stmt.where(condition)
             count_stmt = count_stmt.where(condition)
-            ranked = False
+            use_fts = True
+            strategy = "postgres"
+            ranked = filters.sort == "relevance"
+        else:
+            fts_query = build_fts_query(filters.q)
+            use_fts = bool(filters.q) and _fts_available(db)
+            strategy = "fts5" if use_fts else "like"
+            if use_fts and fts_query:
+                stmt = _join_fts(stmt, fts_query)
+                count_stmt = _join_fts(count_stmt, fts_query)
+                ranked = True
+            else:
+                use_fts = False
+                strategy = "like"
+                condition = _like_condition(normalized)
+                stmt = stmt.where(condition)
+                count_stmt = count_stmt.where(condition)
+                ranked = False
     else:
         use_fts = False
+        strategy = "like"
         ranked = False
 
     stmt = _apply_filters(stmt, filters)
@@ -261,7 +336,9 @@ def search_announcements(
     pages = max(1, (total + per_page - 1) // per_page)
     page = min(page, pages)
 
-    stmt = stmt.order_by(*_order_clause(filters.sort, ranked=ranked))
+    stmt = stmt.order_by(
+        *_order_clause(filters.sort, ranked=ranked, rank_order=rank_order)
+    )
     stmt = stmt.limit(per_page).offset((page - 1) * per_page)
     items = list(db.scalars(stmt).unique().all())
 
@@ -272,6 +349,7 @@ def search_announcements(
         per_page=per_page,
         pages=pages,
         used_fts=use_fts,
+        strategy=strategy,
         normalized_query=normalized,
     )
 

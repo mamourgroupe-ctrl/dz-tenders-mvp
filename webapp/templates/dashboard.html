@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}لوحة التحكم — {{ site_name }}{% endblock %}
+{% block description %}إدارة الاشتراك والقطاعات والتنبيهات وسجل الدفع.{% endblock %}
+
+{% block content %}
+<div class="container page dashboard">
+  <header class="page-header dashboard-head">
+    <div>
+      <h1>لوحة التحكم</h1>
+      <p class="lead">{{ user.company_name or user.phone }} — {{ user.phone }}</p>
+    </div>
+    <div class="dashboard-actions">
+      <a class="button button-primary" href="/abonnement">تجديد / تغيير الصيغة</a>
+      <a class="button button-ghost" href="/annonces">تصفح المناقصات</a>
+    </div>
+  </header>
+
+  {% if notice == "alert" %}
+    <div class="alert alert-success" role="status">تم حفظ إعدادات التنبيه.</div>
+  {% elif notice == "sectors" %}
+    <div class="alert alert-success" role="status">تم تحديث القطاعات المفضلة.</div>
+  {% endif %}
+
+  {% if not user.email_verified_at and user.email %}
+    <div class="alert alert-info" role="note">
+      {{ icon("mail", 18) }}
+      <div>
+        لم يتم تأكيد بريدك الإلكتروني بعد. تحقق من صندوق الوارد للرابط المرسل إلى
+        <span dir="ltr">{{ user.email }}</span>.
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="dashboard-grid">
+    <section class="dashboard-card" aria-labelledby="subscription-title">
+      <h2 id="subscription-title">الاشتراك الحالي</h2>
+      {% if subscription %}
+        <p class="plan-line">
+          <strong>{{ subscription.plan.name_ar }}</strong>
+          <span class="badge {% if subscription.status == 'active' %}badge-plan{% else %}badge-sample{% endif %}">
+            {{ {"pending": "بانتظار التحقق", "active": "نشط", "expired": "منتهٍ", "cancelled": "ملغى"}.get(subscription.status.value, subscription.status.value) }}
+          </span>
+        </p>
+        <dl class="info-grid">
+          <div><dt>طريقة الدفع</dt><dd>{{ "سنوي" if subscription.billing_period == "annual" else "شهري" }}</dd></div>
+          <div><dt>البداية</dt><dd>{{ subscription.starts_at|date_ar if subscription.starts_at else "—" }}</dd></div>
+          <div><dt>النهاية</dt><dd>{{ subscription.ends_at|date_ar if subscription.ends_at else "—" }}</dd></div>
+          {% if days_left is not none %}
+            <div><dt>المتبقي</dt><dd>{{ days_left }} يوماً</dd></div>
+          {% endif %}
+        </dl>
+        <p class="muted">
+          القطاعات:
+          {% if subscription.plan.sector_limit is none %}
+            كل القطاعات{% if subscription.plan.auctions_only %} — المزادات فقط{% endif %}
+          {% elif subscription.sectors %}
+            {{ subscription.sectors|map(attribute="name_ar")|join("، ") }}
+          {% else %}—{% endif %}
+        </p>
+        {% if subscription.status == "pending" %}
+          <p class="muted">يُفعّل الاشتراك بعد التحقق من وصل الدفع.</p>
+        {% elif days_left is not none and days_left <= 7 %}
+          <div class="alert alert-warning" role="note">ينتهي اشتراكك قريباً. جدّده لتفادي انقطاع الوصول.</div>
+        {% endif %}
+      {% else %}
+        <p>لا يوجد اشتراك بعد. تصفح الإعلانات مجاناً، أو اختر صيغة للاطلاع على التفاصيل الكاملة.</p>
+        <a class="button button-primary" href="/abonnement">اختيار صيغة</a>
+      {% endif %}
+    </section>
+
+    <section class="dashboard-card" aria-labelledby="payments-title">
+      <h2 id="payments-title">سجل المدفوعات</h2>
+      {% if payments %}
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>الصيغة</th><th>المبلغ</th><th>الطريقة</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+            <tbody>
+              {% for payment in payments %}
+                <tr>
+                  <td>{{ payment.id }}</td>
+                  <td>{{ payment.plan.name_ar }}</td>
+                  <td>{{ payment.amount_dzd|dzd }}</td>
+                  <td>{{ {"bank_transfer": "تحويل بنكي", "postal_account": "حساب بريدي", "cash": "نقداً"}.get(payment.method.value, payment.method.value) }}</td>
+                  <td>
+                    <span class="badge {% if payment.status == 'verified' %}badge-plan{% elif payment.status == 'rejected' %}badge-cancelled{% else %}badge-sample{% endif %}">
+                      {{ {"pending": "بانتظار التحقق", "verified": "مؤكد", "rejected": "مرفوض"}.get(payment.status.value, payment.status.value) }}
+                    </span>
+                  </td>
+                  <td>{{ payment.submitted_at|date_ar }}</td>
+                  <td><a href="/paiement/{{ payment.id }}">تفاصيل</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="muted">لا توجد مدفوعات مسجلة.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="dashboard-grid">
+    <section class="dashboard-card" aria-labelledby="interests-title">
+      <h2 id="interests-title">القطاعات المفضلة</h2>
+      <form method="post" action="/tableau-de-bord/secteurs" class="stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="checkbox-grid checkbox-grid-compact">
+          {% for sector in sectors %}
+            <label class="checkbox-item">
+              <input type="checkbox" name="sectors" value="{{ sector.id }}"
+                     {% if sector.id in interests|map(attribute="id")|list %}checked{% endif %}>
+              <span>{{ sector.name_ar }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        <button class="button button-primary" type="submit">حفظ القطاعات</button>
+      </form>
+    </section>
+
+    <section class="dashboard-card" aria-labelledby="alerts-title">
+      <h2 id="alerts-title">تنبيهات الجديد</h2>
+      <form method="post" action="/tableau-de-bord/alertes" class="stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="filter-field">
+          <label for="frequency">التكرار</label>
+          <select id="frequency" name="frequency">
+            {% for frequency in frequencies %}
+              <option value="{{ frequency.value }}" {% if alert.frequency == frequency %}selected{% endif %}>
+                {{ "يومي" if frequency.value == "daily" else "أسبوعي" }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="alert-sectors">القطاعات</label>
+          <select id="alert-sectors" name="sectors" multiple size="5">
+            {% for sector in sectors %}
+              <option value="{{ sector.id }}" {% if sector in alert.sectors %}selected{% endif %}>{{ sector.name_ar }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="alert-wilayas">الولايات (اختياري)</label>
+          <select id="alert-wilayas" name="wilayas" multiple size="5">
+            {% for wilaya in wilayas %}
+              <option value="{{ wilaya.id }}" {% if wilaya in alert.wilayas %}selected{% endif %}>{{ wilaya.code }} — {{ wilaya.name_ar }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <label class="checkbox-item">
+          <input type="checkbox" name="is_active" {% if alert.is_active %}checked{% endif %}>
+          <span>تفعيل التنبيه بالبريد الإلكتروني</span>
+        </label>
+        <button class="button button-primary" type="submit">حفظ التنبيه</button>
+      </form>
+      <p class="muted">يمكنك إلغاء التنبيه من أي رسالة عبر رابط «إلغاء الاشتراك».</p>
+    </section>
+  </div>
+
+  <section class="dashboard-card" aria-labelledby="saved-title">
+    <h2 id="saved-title">الإعلانات المحفوظة</h2>
+    {% if saved %}
+      <ul class="saved-list">
+        {% for announcement in saved %}
+          <li>
+            <a href="{{ ann_url(announcement) }}">{{ announcement.title_ar }}</a>
+            <span class="muted">{{ announcement.wilaya.name_ar }} — {{ announcement.publish_date|date_ar }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">لم تحفظ أي إعلان بعد. استعمل زر الحفظ في صفحة الإعلان.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

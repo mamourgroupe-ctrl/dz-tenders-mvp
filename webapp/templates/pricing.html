@@ -24,8 +24,9 @@
     {{ icon("info", 18) }}
     <div>
       <strong>الأسعار المعروضة مؤقتة (Placeholder).</strong>
-      تُحدد الأسعار النهائية مع العميل قبل الإطلاق. تفعيل الاشتراك والدفع اليدوي
-      (تحويل بنكي، حساب بريدي، دفع نقدي) يُفتح في المرحلة الثانية.
+      تُحدد الأسعار النهائية مع العميل قبل الإطلاق. الاشتراك والدفع اليدوي
+      (تحويل بنكي، حساب بريدي، دفع نقدي) متاح الآن، ويُفعّل الاشتراك بعد
+      التحقق من وصل الدفع.
     </div>
   </div>
 
@@ -70,8 +71,10 @@
 
         {% if plan.code == "free" %}
           <a class="button button-outline button-block" href="/annonces">تصفّح مجاناً</a>
+        {% elif plan.kind.value == "addon" %}
+          <span class="button button-disabled button-block" aria-disabled="true">يُضاف تلقائياً عند تجاوز الحد</span>
         {% else %}
-          <span class="button button-disabled button-block" aria-disabled="true">التفعيل قريباً</span>
+          <a class="button button-primary button-block" href="/abonnement?plan={{ plan.code }}">اشترك الآن</a>
         {% endif %}
       </article>
     {% endfor %}

@@ -79,7 +79,7 @@ class TimestampMixin:
 # Taxonomy
 # ---------------------------------------------------------------------------
 class Wilaya(TimestampMixin, Base):
-    """An Algerian wilaya (58 official codes; optional client extension)."""
+    """An Algerian wilaya (69 official codes as of 2026)."""
 
     __tablename__ = "wilayas"
 
@@ -172,6 +172,9 @@ class User(TimestampMixin, Base):
     saved_announcements: Mapped[list[SavedAnnouncement]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    sectors: Mapped[list[Sector]] = relationship(
+        secondary="user_sectors", lazy="selectin"
+    )
 
     @property
     def is_staff(self) -> bool:
@@ -185,6 +188,19 @@ class User(TimestampMixin, Base):
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<User {self.id} {self.phone}>"
+
+
+class UserSector(Base):
+    """Sectors a user selected at registration (interest profile)."""
+
+    __tablename__ = "user_sectors"
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    sector_id: Mapped[int] = mapped_column(
+        ForeignKey("sectors.id", ondelete="CASCADE"), primary_key=True
+    )
 
 
 class Plan(TimestampMixin, Base):
@@ -245,6 +261,8 @@ class Subscription(TimestampMixin, Base):
         enum_column(BillingPeriod), default=BillingPeriod.MONTHLY, nullable=False
     )
     notes: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    #: Set once the renewal reminder email has been sent (idempotent jobs).
+    reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     user: Mapped[User] = relationship(back_populates="subscriptions")
     plan: Mapped[Plan] = relationship()
@@ -300,6 +318,8 @@ class Payment(TimestampMixin, Base):
     proof_filename: Mapped[str | None] = mapped_column(String(255))
     proof_original_name: Mapped[str | None] = mapped_column(String(255))
     proof_sha256: Mapped[str | None] = mapped_column(String(64))
+    proof_content_type: Mapped[str | None] = mapped_column(String(100))
+    proof_size_bytes: Mapped[int | None] = mapped_column(Integer)
     status: Mapped[PaymentStatus] = mapped_column(
         enum_column(PaymentStatus),
         default=PaymentStatus.PENDING,
@@ -315,6 +335,9 @@ class Payment(TimestampMixin, Base):
 
     user: Mapped[User] = relationship(back_populates="payments", foreign_keys=[user_id])
     plan: Mapped[Plan] = relationship()
+    subscription: Mapped[Subscription | None] = relationship(
+        foreign_keys=[subscription_id]
+    )
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<Payment {self.id} {self.status}>"
@@ -343,7 +366,7 @@ class UserSession(Base):
 
 
 class OneTimeToken(Base):
-    """Email-verification and password-reset tokens (Phase 2)."""
+    """Phone OTP, email-verification and password-reset tokens."""
 
     __tablename__ = "one_time_tokens"
 
@@ -353,10 +376,16 @@ class OneTimeToken(Base):
     )
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     purpose: Mapped[TokenPurpose] = mapped_column(
-        enum_column(TokenPurpose), nullable=False
+        enum_column(TokenPurpose), nullable=False, index=True
     )
+    #: Phone number or email the token was sent to (masked in logs).
+    destination: Mapped[str | None] = mapped_column(String(254))
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     used_at: Mapped[datetime | None] = mapped_column(DateTime)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    user: Mapped[User] = relationship()
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=utcnow, nullable=False
     )
@@ -660,6 +689,24 @@ class Banner(TimestampMixin, Base):
     clicks: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
 
+class ContactMessage(Base):
+    """A message sent through the public contact form."""
+
+    __tablename__ = "contact_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    email: Mapped[str] = mapped_column(String(254), nullable=False)
+    phone: Mapped[str] = mapped_column(String(40), default="", nullable=False)
+    subject: Mapped[str] = mapped_column(String(160), default="", nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    ip_hash: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utcnow, nullable=False, index=True
+    )
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
 class SearchLog(Base):
     """Normalised search terms, used by the Phase 4 KPI dashboard."""
 
@@ -703,6 +750,7 @@ __all__ = [
     "Attachment",
     "AuditLog",
     "Banner",
+    "ContactMessage",
     "Issuer",
     "OneTimeToken",
     "Payment",
@@ -715,6 +763,7 @@ __all__ = [
     "Subscription",
     "SubscriptionSector",
     "User",
+    "UserSector",
     "UserSession",
     "Wilaya",
 ]

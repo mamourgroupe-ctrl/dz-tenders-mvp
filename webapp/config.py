@@ -60,12 +60,19 @@ class Settings:
         login_rate_limit: Failed/successful login attempts per window and phone.
         ip_rate_limit: Login attempts per window and IP.
         rate_limit_window_minutes: Window for both limits.
+        search_rate_limit: Keyword searches allowed per IP and window.
+        contact_rate_limit / contact_rate_window_minutes: Contact-form quota.
         upload_dir: Root for payment proofs and announcement attachments.
         max_upload_bytes: Maximum accepted upload size.
         wilayas_file: Optional JSON override of the seeded wilaya list.
         admin_phone/admin_email/admin_password: Optional bootstrap admin.
         contact_email/contact_phone: Displayed on the contact page.
         trust_proxy: Honour ``X-Forwarded-*`` headers (behind a reverse proxy).
+        email_backend/smtp_*: Transactional email (console by default).
+        sms_backend/sms_*: Phone OTP delivery (console by default).
+        otp_ttl_minutes/otp_max_attempts/otp_resend_seconds: OTP policy.
+        email_token_ttl_hours: Email verification link lifetime.
+        renewal_reminder_days: How early the renewal email is sent.
     """
 
     app_env: str = "development"
@@ -79,6 +86,9 @@ class Settings:
     login_rate_limit: int = 5
     ip_rate_limit: int = 10
     rate_limit_window_minutes: int = 15
+    search_rate_limit: int = 60
+    contact_rate_limit: int = 5
+    contact_rate_window_minutes: int = 60
     upload_dir: str = str(REPO_ROOT / "storage" / "uploads")
     max_upload_bytes: int = 5 * 1024 * 1024
     wilayas_file: str = ""
@@ -88,6 +98,22 @@ class Settings:
     contact_email: str = "contact@example.dz"
     contact_phone: str = ""
     trust_proxy: bool = False
+    email_backend: str = "console"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_starttls: bool = True
+    sms_backend: str = "console"
+    sms_api_url: str = ""
+    sms_api_key: str = ""
+    sms_sender: str = ""
+    otp_ttl_minutes: int = 10
+    otp_max_attempts: int = 5
+    otp_resend_seconds: int = 60
+    email_token_ttl_hours: int = 48
+    renewal_reminder_days: int = 7
 
     @property
     def is_production(self) -> bool:
@@ -139,6 +165,11 @@ class Settings:
             rate_limit_window_minutes=max(
                 1, _env_int("APP_RATE_LIMIT_WINDOW_MINUTES", 15)
             ),
+            search_rate_limit=max(1, _env_int("APP_SEARCH_RATE_LIMIT", 60)),
+            contact_rate_limit=max(1, _env_int("APP_CONTACT_RATE_LIMIT", 5)),
+            contact_rate_window_minutes=max(
+                1, _env_int("APP_CONTACT_RATE_WINDOW_MINUTES", 60)
+            ),
             upload_dir=os.getenv(
                 "APP_UPLOAD_DIR", str(REPO_ROOT / "storage" / "uploads")
             ),
@@ -152,6 +183,22 @@ class Settings:
             contact_email=os.getenv("APP_CONTACT_EMAIL", "contact@example.dz"),
             contact_phone=os.getenv("APP_CONTACT_PHONE", ""),
             trust_proxy=parse_bool(os.getenv("APP_TRUST_PROXY"), default=False),
+            email_backend=os.getenv("APP_EMAIL_BACKEND", "console").strip().lower(),
+            smtp_host=os.getenv("APP_SMTP_HOST", ""),
+            smtp_port=max(1, _env_int("APP_SMTP_PORT", 587)),
+            smtp_user=os.getenv("APP_SMTP_USER", ""),
+            smtp_password=os.getenv("APP_SMTP_PASSWORD", ""),
+            smtp_from=os.getenv("APP_SMTP_FROM", ""),
+            smtp_starttls=parse_bool(os.getenv("APP_SMTP_STARTTLS"), default=True),
+            sms_backend=os.getenv("APP_SMS_BACKEND", "console").strip().lower(),
+            sms_api_url=os.getenv("APP_SMS_API_URL", ""),
+            sms_api_key=os.getenv("APP_SMS_API_KEY", ""),
+            sms_sender=os.getenv("APP_SMS_SENDER", ""),
+            otp_ttl_minutes=max(1, _env_int("APP_OTP_TTL_MINUTES", 10)),
+            otp_max_attempts=max(1, _env_int("APP_OTP_MAX_ATTEMPTS", 5)),
+            otp_resend_seconds=max(0, _env_int("APP_OTP_RESEND_SECONDS", 60)),
+            email_token_ttl_hours=max(1, _env_int("APP_EMAIL_TOKEN_TTL_HOURS", 48)),
+            renewal_reminder_days=max(1, _env_int("APP_RENEWAL_REMINDER_DAYS", 7)),
         )
 
 

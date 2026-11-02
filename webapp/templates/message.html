@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}{{ heading }} — {{ site_name }}{% endblock %}
+{% block description %}{{ message }}{% endblock %}
+
+{% block content %}
+<div class="container page narrow-page">
+  <div class="auth-card message-card">
+    <div class="auth-head">
+      <span class="auth-icon">{% if success %}{{ icon("check", 24) }}{% else %}{{ icon("info", 24) }}{% endif %}</span>
+      <h1>{{ heading }}</h1>
+      <p>{{ message }}</p>
+    </div>
+    <div class="message-actions">
+      <a class="button button-primary" href="/tableau-de-bord">لوحة التحكم</a>
+      <a class="button button-ghost" href="/annonces">تصفح الإعلانات</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -38,6 +38,14 @@
           {% if a.deadline_at and view.unlocked %}
             <span class="card-deadline {{ 'is-closing' if a.deadline_at|deadline_label == 'ينتهي اليوم' else '' }}">{{ a.deadline_at|deadline_label }}</span>
           {% endif %}
+          {% if user %}
+            <form method="post" action="/tableau-de-bord/sauvegardes/{{ a.id }}" class="save-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button class="button button-ghost button-small" type="submit" title="حفظ في لوحة التحكم">
+                حفظ الإعلان
+              </button>
+            </form>
+          {% endif %}
         </div>
         <h1>{{ a.title_ar }}</h1>
         {% if a.title_fr %}<p class="detail-title-fr" dir="ltr">{{ a.title_fr }}</p>{% endif %}

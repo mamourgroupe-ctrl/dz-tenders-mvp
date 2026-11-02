@@ -17,6 +17,9 @@
       <div class="alert alert-warning" role="alert">{{ error }}</div>
     {% endif %}
 
+    {% if request.query_params.get('reset') %}
+      <div class="alert alert-success" role="status">تم تعيين كلمة المرور الجديدة. سجّل الدخول الآن.</div>
+    {% endif %}
     <form method="post" action="/connexion" class="auth-form" novalidate>
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="next" value="{{ next_url }}">
@@ -39,7 +42,8 @@
     </form>
 
     <div class="auth-note">
-      <p>لا تملك حساباً؟ التسجيل ورمز التحقق عبر الهاتف يُفتحان في المرحلة الثانية من الإطلاق.</p>
+      <p>لا تملك حساباً؟ <a href="/inscription">أنشئ حساباً جديداً</a>.</p>
+      <p>نسيت كلمة المرور؟ <a href="/mot-de-passe-oublie">استعدها برمز الهاتف</a>.</p>
       <p>للاستفسار عن الاشتراك: <a href="/contact">اتصل بنا</a>.</p>
     </div>
   </div>

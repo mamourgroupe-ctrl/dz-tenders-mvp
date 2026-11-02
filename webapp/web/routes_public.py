@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from webapp import repositories as repo
 from webapp.access import build_announcement_view, build_offer_view
 from webapp.enums import AnnouncementType, BannerPlacement
-from webapp.models import Announcement
+from webapp.models import Announcement, ContactMessage
 from webapp.search import (
     DEFAULT_PER_PAGE,
     MAX_PER_PAGE,
@@ -24,8 +24,9 @@ from webapp.search import (
     published_announcement,
     search_announcements,
 )
+from webapp.security import RateLimiter, client_ip, hash_ip, normalize_phone
 from webapp.text import truncate_words
-from webapp.web.deps import PageContext, get_page_context
+from webapp.web.deps import PageContext, get_page_context, verify_csrf
 from webapp.web.templating import SITE_NAME_AR, render
 
 router = APIRouter()
@@ -239,6 +240,8 @@ def announcements_list(
 ):
     """Advanced search with filters, sorting and pagination."""
     filters, state = parse_filters(ctx)
+    if filters.q and not _search_allowed(ctx):
+        raise HTTPException(status_code=429, detail="search_rate_limited")
     result = search_announcements(ctx.db, filters, per_page=state.per_page)
     if filters.q:
         repo.record_search(ctx.db, filters.q, result.total)
@@ -302,6 +305,8 @@ def archive_index(
     request: Request, ctx: Annotated[PageContext, Depends(get_page_context)]
 ):
     """Announcements grouped by publication year."""
+    if not _archive_allowed(ctx):
+        raise HTTPException(status_code=429, detail="search_rate_limited")
     years = repo.archive_years(ctx.db)
     return render(
         ctx,
@@ -318,6 +323,8 @@ def archive_year(
     year: int,
 ):
     """One archive year, reusing the listing layout."""
+    if not _archive_allowed(ctx):
+        raise HTTPException(status_code=429, detail="search_rate_limited")
     if year < 2000 or year > 2100:
         raise HTTPException(status_code=404, detail="archive_not_found")
     start, end = repo.date_bounds_for_year(year)
@@ -537,11 +544,43 @@ PAGES: dict[str, dict] = {
 }
 
 
-@router.get("/contact", name="contact")
-def contact(request: Request, ctx: Annotated[PageContext, Depends(get_page_context)]):
-    """Contact page with clearly-marked placeholder coordinates."""
+def _archive_allowed(ctx: PageContext) -> bool:
+    """Throttle archive browsing: every page is a full historical scan."""
+    settings = ctx.settings
+    ip = client_ip(ctx.request, trust_proxy=settings.trust_proxy) or "unknown"
+    limiter = RateLimiter(ctx.db)
+    return limiter.hit(
+        "archive_ip",
+        ip,
+        limit=settings.search_rate_limit,
+        window_minutes=settings.rate_limit_window_minutes,
+    )
+
+
+def _search_allowed(ctx: PageContext) -> bool:
+    """Throttle keyword searches per client IP (empty queries are free)."""
+    settings = ctx.settings
+    ip = client_ip(ctx.request, trust_proxy=settings.trust_proxy) or "unknown"
+    limiter = RateLimiter(ctx.db)
+    return limiter.hit(
+        "search_ip",
+        ip,
+        limit=settings.search_rate_limit,
+        window_minutes=settings.rate_limit_window_minutes,
+    )
+
+
+def _contact_page(
+    ctx: PageContext,
+    *,
+    values: dict[str, str] | None = None,
+    error: str = "",
+    success: bool = False,
+    status_code: int = 200,
+):
+    """Render the contact page with the message form."""
     page = PAGES["contact"]
-    return render(
+    response = render(
         ctx,
         "page.html",
         page=page,
@@ -549,7 +588,96 @@ def contact(request: Request, ctx: Annotated[PageContext, Depends(get_page_conte
         page_description=page["description"],
         contact_email=ctx.settings.contact_email,
         contact_phone=ctx.settings.contact_phone or "يُضاف عند تأكيد الرقم",
+        form_values=values or {},
+        form_error=error,
+        form_success=success,
     )
+    response.status_code = status_code
+    return response
+
+
+@router.get("/contact", name="contact")
+def contact(request: Request, ctx: Annotated[PageContext, Depends(get_page_context)]):
+    """Contact page with a throttled, CSRF-protected message form."""
+    return _contact_page(ctx)
+
+
+@router.post("/contact", name="contact_submit")
+async def contact_submit(
+    request: Request, ctx: Annotated[PageContext, Depends(get_page_context)]
+):
+    """Validate and store a contact message (never sends email directly)."""
+    form = await request.form()
+    values = {
+        "name": str(form.get("name") or "").strip(),
+        "email": str(form.get("email") or "").strip(),
+        "phone": str(form.get("phone") or "").strip(),
+        "subject": str(form.get("subject") or "").strip(),
+        "message": str(form.get("message") or "").strip(),
+    }
+
+    # Honeypot: bots fill hidden fields, humans never see them.
+    if str(form.get("website") or "").strip():
+        return _contact_page(ctx, success=True)
+
+    if not verify_csrf(request, form):
+        return _contact_page(
+            ctx,
+            values=values,
+            error="انتهت صلاحية النموذج. أعد تحميل الصفحة وحاول مجدداً.",
+            status_code=400,
+        )
+
+    settings = ctx.settings
+    ip = client_ip(request, trust_proxy=settings.trust_proxy) or "unknown"
+    limiter = RateLimiter(ctx.db)
+    allowed = limiter.hit(
+        "contact_ip",
+        ip,
+        limit=settings.contact_rate_limit,
+        window_minutes=settings.contact_rate_window_minutes,
+    )
+    if not allowed:
+        return _contact_page(
+            ctx,
+            values=values,
+            error="تم بلوغ حدّ الرسائل المسموح. الرجاء المحاولة لاحقاً.",
+            status_code=429,
+        )
+
+    error = _validate_contact(values)
+    if error:
+        return _contact_page(ctx, values=values, error=error, status_code=400)
+
+    phone = normalize_phone(values["phone"]) if values["phone"] else ""
+    ctx.db.add(
+        ContactMessage(
+            name=values["name"],
+            email=values["email"],
+            phone=phone or "",
+            subject=values["subject"],
+            message=values["message"],
+            ip_hash=hash_ip(ip),
+        )
+    )
+    ctx.db.commit()
+    return _contact_page(ctx, success=True)
+
+
+def _validate_contact(values: dict[str, str]) -> str:
+    """Return an Arabic error message, or an empty string when valid."""
+    if not 2 <= len(values["name"]) <= 120:
+        return "الاسم يجب أن يتراوح بين حرفين و120 حرفاً."
+    email = values["email"]
+    if "@" not in email or "." not in email.split("@")[-1] or len(email) > 254:
+        return "البريد الإلكتروني غير صالح."
+    if values["phone"] and normalize_phone(values["phone"]) is None:
+        return "رقم الهاتف غير صالح. مثال: 0555 12 34 56"
+    if len(values["subject"]) > 160:
+        return "الموضوع طويل جداً (160 حرفاً كحد أقصى)."
+    if not 10 <= len(values["message"]) <= 4000:
+        return "الرسالة يجب أن تتراوح بين 10 و4000 حرف."
+    return ""
 
 
 def _legal_page(slug: str):

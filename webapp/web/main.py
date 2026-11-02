@@ -13,8 +13,11 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from webapp.config import Settings
 from webapp.db import ensure_fts, make_engine, make_session_factory, schema_ready
 from webapp.entitlements import ANONYMOUS
+from webapp.notifications import build_email_provider
 from webapp.security import CSRF_COOKIE, SESSION_COOKIE, new_token
+from webapp.sms import build_sms_provider
 from webapp.timeutils import today_algiers
+from webapp.web.routes_accounts import router as accounts_router
 from webapp.web.routes_auth import router as auth_router
 from webapp.web.routes_public import router as public_router
 from webapp.web.routes_seo import router as seo_router
@@ -115,6 +118,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.sessionmaker = sessionmaker
     app.state.templates = build_templates()
+    app.state.email_provider = build_email_provider(settings)
+    app.state.sms_provider = build_sms_provider(settings)
 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
@@ -150,9 +155,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         else:
             response.headers["Cache-Control"] = "no-store"
 
-        if path in {"/connexion", "/deconnexion", "/health"} or path.startswith(
-            "/admin"
-        ):
+        if path in {
+            "/connexion",
+            "/deconnexion",
+            "/health",
+            "/inscription",
+            "/inscription/verifier",
+            "/mot-de-passe-oublie",
+            "/reinitialiser",
+            "/tableau-de-bord",
+            "/abonnement",
+        } or path.startswith(("/admin", "/paiement")):
             response.headers["X-Robots-Tag"] = "noindex, nofollow"
         return response
 
@@ -200,6 +213,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(public_router)
     app.include_router(auth_router)
+    app.include_router(accounts_router)
     app.include_router(seo_router)
     return app
 
