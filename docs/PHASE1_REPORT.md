@@ -1,6 +1,6 @@
 # Phase 1 — Platform schema, public site, Arabic search, access control
 
-**Status:** complete · **Branch:** `feat/phase-1-public-platform` · **Date:** 2026-11-02
+**Status:** complete · **Branch:** `arena/4912d33a-dz-tenders-mvp` (Arena session branch; the name is fixed by the environment) · **PR:** #4 · **Date:** 2026-11-02
 
 Phase 1 turns the scraper MVP into an Arabic-first public procurement site on the
 same stack (Python 3.11, FastAPI, SQLite, Jinja2) while the legacy pipeline keeps
