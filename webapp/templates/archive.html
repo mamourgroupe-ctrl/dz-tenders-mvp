@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}أرشيف الإعلانات — {{ site_name }}{% endblock %}
+{% block description %}تصفّح أرشيف المناقصات العمومية الجزائرية حسب سنة النشر.{% endblock %}
+
+{% block content %}
+<div class="container page">
+  <nav class="breadcrumbs" aria-label="مسار التنقل">
+    <a href="/">الرئيسية</a><span aria-hidden="true">/</span><span>الأرشيف</span>
+  </nav>
+
+  <header class="page-header">
+    <div>
+      <h1>الأرشيف حسب السنة</h1>
+      <p class="lead">كل الإعلانات المنشورة، مرتبة حسب سنة النشر. {{ total }} إعلاناً في الأرشيف.</p>
+    </div>
+  </header>
+
+  {% if years %}
+    <div class="year-grid">
+      {% for year, count in years %}
+        <a class="year-card" href="/archives/{{ year }}">
+          <span class="year-number">{{ year }}</span>
+          <span class="year-count">{{ count }} إعلاناً</span>
+          <span class="year-arrow">{{ icon("arrow-left", 20) }}</span>
+        </a>
+      {% endfor %}
+    </div>
+    <div class="alert alert-info" role="note">
+      {{ icon("info", 18) }}
+      <div>الأرشيف يعرض الإعلانات المنشورة على المنصة، وليس بالضرورة كل ما نشرته الجهات العمومية.</div>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h2>الأرشيف فارغ حالياً</h2>
+      <p>ستظهر الإعلانات هنا تلقائياً بعد نشرها.</p>
+      <a class="button button-primary" href="/annonces">كل الإعلانات</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

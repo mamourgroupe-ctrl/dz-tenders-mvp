@@ -1,0 +1,83 @@
+{% from "partials/icons.html" import icon %}
+{% set action = request.url.path %}
+<details class="filters-details" {% if state.active_count or state.q %}open{% endif %} data-filters>
+  <summary class="filters-summary">
+    <span>{{ icon("search", 17) }} تصفية النتائج</span>
+    {% if state.active_count %}<span class="badge badge-count">{{ state.active_count }}</span>{% endif %}
+  </summary>
+
+  <form class="filters-body" method="get" action="{{ action }}" role="search" aria-label="تصفية الإعلانات">
+    <div class="filter-field">
+      <label for="f-q">كلمة مفتاحية</label>
+      <input id="f-q" type="search" name="q" value="{{ state.q }}" maxlength="200" placeholder="أنابيب، خزانات، أشغال…">
+    </div>
+
+    <div class="filter-field">
+      <label for="f-type">نوع الإعلان</label>
+      <select id="f-type" name="type">
+        <option value="">كل الأنواع</option>
+        {% for kind in announcement_types %}
+          <option value="{{ kind.value }}" {% if state.type == kind.value %}selected{% endif %}>{{ type_labels[kind][0] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label for="f-wilaya">الولاية</label>
+      <select id="f-wilaya" name="wilaya">
+        <option value="">كل الولايات</option>
+        {% for wilaya in options.wilayas %}
+          <option value="{{ wilaya.code }}" {% if state.wilaya == wilaya.code %}selected{% endif %}>{{ wilaya.code }} — {{ wilaya.name_ar }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label for="f-sector">القطاع</label>
+      <select id="f-sector" name="sector">
+        <option value="">كل القطاعات</option>
+        {% for sector in options.sectors %}
+          <option value="{{ sector.slug }}" {% if state.sector == sector.slug %}selected{% endif %}>{{ sector.name_ar }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label for="f-issuer">الجهة المصدرة</label>
+      <select id="f-issuer" name="issuer">
+        <option value="">كل الجهات</option>
+        {% for issuer in options.issuers %}
+          <option value="{{ issuer.slug }}" {% if state.issuer == issuer.slug %}selected{% endif %}>{{ issuer.name_ar }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {% if not archive_year %}
+    <fieldset class="filter-dates">
+      <legend>تاريخ النشر</legend>
+      <div class="filter-field">
+        <label for="f-from">من</label>
+        <input id="f-from" type="date" name="from" value="{{ state.date_from }}">
+      </div>
+      <div class="filter-field">
+        <label for="f-to">إلى</label>
+        <input id="f-to" type="date" name="to" value="{{ state.date_to }}">
+      </div>
+    </fieldset>
+    {% endif %}
+
+    <div class="filter-field">
+      <label for="f-per-page">عدد النتائج في الصفحة</label>
+      <select id="f-per-page" name="per_page">
+        {% for size in [12, 24, 48] %}
+          <option value="{{ size }}" {% if state.per_page == size %}selected{% endif %}>{{ size }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-actions">
+      <button class="button button-primary" type="submit">تطبيق التصفية</button>
+      <a class="button button-ghost" href="{{ action }}">إعادة الضبط</a>
+    </div>
+  </form>
+</details>

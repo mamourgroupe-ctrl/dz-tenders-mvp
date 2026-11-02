@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set o = offer %}
+
+{% block title %}{{ o.title }} — {{ site_name }}{% endblock %}
+{% block description %}{{ o.description|truncate_words(150) }}{% endblock %}
+
+{% block content %}
+<div class="container page">
+  <nav class="breadcrumbs" aria-label="مسار التنقل">
+    <a href="/">الرئيسية</a><span aria-hidden="true">/</span>
+    <a href="/sous-traitance">من الباطن</a><span aria-hidden="true">/</span>
+    <span>{{ o.title }}</span>
+  </nav>
+
+  <div class="detail-layout">
+    <article class="detail-main">
+      <header class="detail-header">
+        <div class="card-top">
+          <span class="badge badge-offer">عرض من الباطن</span>
+          {% if o.deadline %}<span class="card-deadline">إلى {{ o.deadline|date_ar }}</span>{% endif %}
+        </div>
+        <h1>{{ o.title }}</h1>
+        <ul class="detail-meta">
+          <li>{{ icon("pin", 16) }} <span>{{ o.wilaya.name_ar }}</span></li>
+          <li>{{ icon("building", 16) }} <span>{{ o.sector.name_ar }}</span></li>
+          <li>{{ icon("calendar", 16) }} <span>نُشر في {{ (o.published_at or o.created_at)|date_ar }}</span></li>
+        </ul>
+      </header>
+
+      <section class="detail-section">
+        <h2>وصف العرض</h2>
+        <p class="detail-body">{{ o.description }}</p>
+      </section>
+
+      <section class="detail-section">
+        <h2>بيانات الاتصال</h2>
+        {% if view.show_contact %}
+          <dl class="info-grid">
+            <div><dt>الجهة</dt><dd>{{ o.issuer_name or '—' }}</dd></div>
+            <div><dt>جهة الاتصال</dt><dd>{{ o.contact_name or '—' }}</dd></div>
+            <div><dt>الهاتف</dt><dd dir="ltr">{{ o.contact_phone or '—' }}</dd></div>
+            <div><dt>البريد الإلكتروني</dt><dd dir="ltr">{{ o.contact_email or '—' }}</dd></div>
+          </dl>
+          <p class="muted">هذه البيانات تجريبية في العروض النموذجية. تحقّق من هوية الجهة قبل أي التزام.</p>
+        {% else %}
+          <div class="locked-panel">
+            <div class="locked-icon">{{ icon("lock", 26) }}</div>
+            <div>
+              <h3>بيانات الاتصال للمشتركين</h3>
+              <p>{{ "أنشئ حساباً واشترك" if not user else "اشترك في صيغة مناسبة" }} للاطلاع على هاتف وبريد الجهة صاحبة العرض.</p>
+              <div class="locked-actions">
+                {% if not user %}<a class="button button-primary" href="/connexion?next={{ request.url.path }}">تسجيل الدخول</a>{% endif %}
+                <a class="button button-gold" href="/tarifs">صيغ الاشتراك</a>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </section>
+    </article>
+
+    <aside class="detail-sidebar">
+      <div class="side-card">
+        <h2>تقديم عرض</h2>
+        <p>لنشر عرض تعاقد من الباطن، أرسل التفاصيل عبر صفحة الاتصال؛ يراجعه الفريق قبل النشر.</p>
+        <a class="button button-primary button-block" href="/contact">اتصل بنا</a>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

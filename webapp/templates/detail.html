@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set a = announcement %}
+
+{% block title %}{{ a.title_ar }} — {{ site_name }}{% endblock %}
+{% block description %}{{ page_description }}{% endblock %}
+
+{% block head %}
+<script type="application/ld+json">{{ structured_data|tojson }}</script>
+{% endblock %}
+
+{% block content %}
+<div class="container page">
+  <nav class="breadcrumbs" aria-label="مسار التنقل">
+    <a href="/">الرئيسية</a>
+    <span aria-hidden="true">/</span>
+    <a href="/annonces">الإعلانات</a>
+    <span aria-hidden="true">/</span>
+    <span>{{ a.type|type_label }}</span>
+  </nav>
+
+  {% if a.is_sample %}
+    <div class="alert alert-info" role="note">
+      {{ icon("info", 18) }}
+      <div>
+        <strong>إعلان توضيحي (نموذج).</strong>
+        هذا المحتوى مُعدّ لعرض ميزات المنصة ولا يمثل إعلاناً رسمياً صادراً عن الجهة المذكورة.
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="detail-layout">
+    <article class="detail-main">
+      <header class="detail-header">
+        <div class="card-top">
+          <span class="badge badge-{{ a.type|type_class }}">{{ a.type|type_label }}</span>
+          {% if a.is_sample %}<span class="badge badge-sample">نموذج</span>{% endif %}
+          {% if a.deadline_at and view.unlocked %}
+            <span class="card-deadline {{ 'is-closing' if a.deadline_at|deadline_label == 'ينتهي اليوم' else '' }}">{{ a.deadline_at|deadline_label }}</span>
+          {% endif %}
+        </div>
+        <h1>{{ a.title_ar }}</h1>
+        {% if a.title_fr %}<p class="detail-title-fr" dir="ltr">{{ a.title_fr }}</p>{% endif %}
+
+        <ul class="detail-meta">
+          <li>{{ icon("pin", 16) }} <span>{{ a.wilaya.name_ar }}</span></li>
+          {% if a.primary_sector %}
+            <li>{{ icon("building", 16) }} <span>{{ a.primary_sector.name_ar }}</span></li>
+          {% endif %}
+          <li>{{ icon("calendar", 16) }} <span>نُشر في {{ a.publish_date|date_ar }}</span></li>
+          {% if a.reference and view.unlocked %}
+            <li>{{ icon("file", 16) }} <span>المرجع: <span dir="ltr">{{ a.reference }}</span></span></li>
+          {% endif %}
+        </ul>
+      </header>
+
+      {% if view.show_locked_notice %}
+        <section class="locked-panel" aria-labelledby="locked-title">
+          <div class="locked-icon">{{ icon("lock", 26) }}</div>
+          <div>
+            <h2 id="locked-title">التفاصيل الكاملة للمشتركين</h2>
+            <p>{{ view.reason_message }}</p>
+            <div class="locked-actions">
+              {% if not user %}
+                <a class="button button-primary" href="/connexion?next={{ request.url.path }}">تسجيل الدخول</a>
+              {% endif %}
+              <a class="button button-gold" href="/tarifs">صيغ الاشتراك</a>
+              <a class="button button-ghost" href="/contact">استفسار</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="detail-section">
+          <h2>بطاقة الإعلان</h2>
+          <dl class="info-grid">
+            <div><dt>النوع</dt><dd>{{ a.type|type_label }}</dd></div>
+            <div><dt>الولاية</dt><dd>{{ a.wilaya.name_ar }}</dd></div>
+            <div><dt>القطاع</dt><dd>{{ a.primary_sector.name_ar if a.primary_sector else '—' }}</dd></div>
+            <div><dt>تاريخ النشر</dt><dd>{{ a.publish_date|date_ar }}</dd></div>
+            <div><dt>الجهة المصدرة</dt><dd><span class="locked-inline">متاحة للمشتركين</span></dd></div>
+            <div><dt>أجل التسليم</dt><dd><span class="locked-inline">متاح للمشتركين</span></dd></div>
+          </dl>
+        </section>
+      {% else %}
+        <section class="detail-section">
+          <h2>وصف الإعلان</h2>
+          {% if view.description_ar %}
+            <p class="detail-body">{{ view.description_ar }}</p>
+          {% else %}
+            <p class="muted">لم يُرفق وصف لهذا الإعلان.</p>
+          {% endif %}
+          {% if view.description_fr %}
+            <details class="latin-description">
+              <summary>الوصف بالفرنسية</summary>
+              <p dir="ltr">{{ view.description_fr }}</p>
+            </details>
+          {% endif %}
+        </section>
+
+        <section class="detail-section">
+          <h2>معلومات الإعلان</h2>
+          <dl class="info-grid">
+            <div><dt>الجهة المصدرة</dt><dd>{{ view.issuer_name or '—' }}</dd></div>
+            <div><dt>أجل التسليم</dt><dd>
+              {% if view.deadline_at %}
+                {{ view.deadline_at|datetime_ar }}
+                <span class="muted">({{ view.deadline_at|deadline_label }})</span>
+              {% else %}غير محدد{% endif %}
+            </dd></div>
+            <div><dt>المرجع</dt><dd>{% if view.reference %}<span dir="ltr">{{ view.reference }}</span>{% else %}—{% endif %}</dd></div>
+            <div><dt>القيمة التقديرية</dt><dd>{% if view.estimated_value_dzd %}{{ view.estimated_value_dzd|dzd }}{% else %}غير معلنة{% endif %}</dd></div>
+            <div><dt>الولاية</dt><dd>{{ a.wilaya.name_ar }}</dd></div>
+            <div><dt>تاريخ النشر</dt><dd>{{ a.publish_date|date_ar }}</dd></div>
+          </dl>
+
+          {% if view.source_url %}
+            <p class="source-link">
+              {{ icon("external", 16) }}
+              <a href="{{ view.source_url }}" target="_blank" rel="noopener noreferrer nofollow">
+                مصدر الإعلان{% if view.source_name %} — {{ view.source_name }}{% endif %}
+              </a>
+              <span class="muted">يفتح في نافذة جديدة</span>
+            </p>
+          {% endif %}
+        </section>
+
+        {% if view.attachments %}
+          <section class="detail-section">
+            <h2>المرفقات ({{ view.attachments|length }})</h2>
+            <ul class="attachment-list">
+              {% for attachment in view.attachments %}
+                <li>
+                  {{ icon("file", 18) }}
+                  <a href="/static/uploads/{{ attachment.stored_name }}" rel="noopener">{{ attachment.original_name }}</a>
+                  <span class="muted">{{ (attachment.size_bytes / 1024)|round|int }} كيلوبايت</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </section>
+        {% endif %}
+      {% endif %}
+    </article>
+
+    <aside class="detail-sidebar">
+      <div class="side-card">
+        <h2>هل تبحث عن صفقات مشابهة؟</h2>
+        <p>اضبط تنبيهاتك على القطاع والولاية لتصلك الجديدات يومياً.</p>
+        <a class="button button-primary button-block" href="/tarifs">اكتشف الاشتراكات</a>
+        <a class="button button-ghost button-block" href="/annonces?sector={{ a.primary_sector.slug if a.primary_sector else '' }}">إعلانات مشابهة</a>
+      </div>
+      <div class="side-card side-card-note">
+        <h2>تذكير</h2>
+        <p>تحقق دائماً من الإعلان الأصلي لدى الجهة المصدرة قبل إعداد العرض. المنصة لا تتحمل مسؤولية تغيير المواعيد.</p>
+      </div>
+    </aside>
+  </div>
+
+  {% if similar %}
+    <section class="section section-tight">
+      <div class="section-head">
+        <div><h2>إعلانات قد تهمك</h2></div>
+        <a class="button button-ghost button-small" href="/annonces">المزيد</a>
+      </div>
+      <div class="cards-grid cards-grid-3">
+        {% for view in similar %}
+          {% include "partials/card.html" %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

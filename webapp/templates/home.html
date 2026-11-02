@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}{{ site_name }} — {{ site_tagline }}{% endblock %}
+{% block description %}منصة عربية أولى للإعلانات العمومية في الجزائر: مناقصات، استشارات، إسنادات مؤقتة، مزادات، إلغاءات، تمديدات آجال، إعذارات وفسخ عقود، حسب الولاية والقطاع.{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <p class="eyebrow">المناقصات العمومية الجزائرية</p>
+      <h1>كل الإعلانات العمومية،<br><span>في مكان واحد.</span></h1>
+      <p class="hero-lead">
+        مناقصات، استشارات، إسنادات مؤقتة، مزادات، إلغاءات، تمديدات آجال، إعذارات وفسخ عقود —
+        مصنّفة حسب 58 ولاية والقطاع، بالعربية وبعرض مهيأ للهاتف.
+      </p>
+
+      <form class="hero-search" action="/annonces" method="get" role="search" aria-label="البحث في الإعلانات">
+        <div class="hero-search-main">
+          <label class="sr-only" for="hero-q">كلمة مفتاحية</label>
+          <input id="hero-q" type="search" name="q" placeholder="ابحث: أنابيب، خزانات، تهيئة طرق…" maxlength="200" autocomplete="off">
+          <button class="button button-gold" type="submit">{{ icon("search", 18) }} بحث</button>
+        </div>
+        <div class="hero-search-filters">
+          <div>
+            <label for="hero-wilaya">الولاية</label>
+            <select id="hero-wilaya" name="wilaya">
+              <option value="">كل الولايات</option>
+              {% for wilaya in options.wilayas %}
+                <option value="{{ wilaya.code }}">{{ wilaya.name_ar }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="hero-sector">القطاع</label>
+            <select id="hero-sector" name="sector">
+              <option value="">كل القطاعات</option>
+              {% for sector in options.sectors %}
+                <option value="{{ sector.slug }}">{{ sector.name_ar }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </form>
+
+      <ul class="hero-types" aria-label="أنواع الإعلانات">
+        {% for kind in announcement_types %}
+          <li><a href="/annonces?type={{ kind.value }}">{{ kind|type_label }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <aside class="hero-panel" aria-label="مؤشرات المنصة">
+      <h2>المنصة بالأرقام</h2>
+      <dl class="stat-grid">
+        <div><dt>إعلان منشور</dt><dd>{{ stats.total }}</dd></div>
+        <div><dt>أجل مفتوح</dt><dd>{{ stats.open_deadlines }}</dd></div>
+        <div><dt>جديد هذا الأسبوع</dt><dd>{{ stats.new_week }}</dd></div>
+        <div><dt>ولاية مغطاة</dt><dd>{{ stats.wilayas }}</dd></div>
+      </dl>
+      <p class="hero-panel-note">
+        {{ icon("shield", 16) }} المعطيات محدّثة من الإعلانات المنشورة، وليست تقديرات.
+      </p>
+      <a class="button button-outline button-block" href="/annonces">استعرض كل الإعلانات</a>
+    </aside>
+  </div>
+</section>
+
+{% for banner in banners %}
+  <div class="container">
+    <a class="banner-slot" href="{{ banner.target_url }}" rel="sponsored noopener">
+      <span class="badge badge-sample">إعلان</span> {{ banner.title }}
+    </a>
+  </div>
+{% endfor %}
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <h2>أحدث الإعلانات</h2>
+        <p>آخر ما نُشر عبر الولايات والقطاعات.</p>
+      </div>
+      <a class="button button-ghost button-small" href="/annonces">عرض الكل {{ icon("arrow-left", 16) }}</a>
+    </div>
+
+    {% if latest %}
+      <div class="cards-grid">
+        {% for view in latest %}
+          {% include "partials/card.html" %}
+        {% endfor %}
+      </div>
+      {% if sample_count %}
+        <p class="sample-note">{{ icon("info", 16) }} بعض البطاقات أعلاه إعلانات توضيحية موسومة بكلمة «نموذج» وليست إعلانات رسمية.</p>
+      {% endif %}
+    {% else %}
+      <div class="empty-state">
+        <h2>لا توجد إعلانات منشورة بعد</h2>
+        <p>سيتم عرض الإعلانات هنا فور نشرها من طرف فريق التحرير.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <h2>تصفّح حسب النوع</h2>
+        <p>ثمانية أنواع تغطي دورة حياة الصفقة العمومية.</p>
+      </div>
+    </div>
+    <div class="type-grid">
+      {% for kind, count in types %}
+        <a class="type-card" href="/annonces?type={{ kind.value }}">
+          <span class="badge badge-{{ kind|type_class }}">{{ kind|type_label }}</span>
+          <strong>{{ count }}</strong>
+          <small>إعلان</small>
+        </a>
+      {% else %}
+        <p class="muted">لا توجد إعلانات منشورة بعد.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <h2>القطاعات</h2>
+        <p>اختر قطاعك للوصول إلى الإعلانات الأقرب لنشاطك.</p>
+      </div>
+    </div>
+    <ul class="chip-grid">
+      {% for sector in sectors %}
+        <li><a class="chip" href="/annonces?sector={{ sector.slug }}">{{ sector.name_ar }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+
+{% if top_wilayas %}
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <h2>الولايات الأكثر نشاطاً</h2>
+        <p>حسب عدد الإعلانات المنشورة حالياً.</p>
+      </div>
+      <a class="button button-ghost button-small" href="/annonces">كل الولايات</a>
+    </div>
+    <ul class="wilaya-list">
+      {% for wilaya, count in top_wilayas %}
+        <li>
+          <a href="/annonces?wilaya={{ wilaya.code }}">
+            <span class="wilaya-code">{{ wilaya.code }}</span>
+            <span class="wilaya-name">{{ wilaya.name_ar }}</span>
+            <span class="wilaya-count">{{ count }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+<section class="section">
+  <div class="container">
+    <div class="cta-panel">
+      <div>
+        <p class="eyebrow">الاشتراكات</p>
+        <h2>افتح المؤسسة، الأجل والوصف الكامل</h2>
+        <p>
+          العرض المجاني يُظهر عنوان الإعلان ونوعه وقطاعه وولايته وتاريخ نشره.
+          الاشتراك المدفوع يفتح الجهة المصدرة، أجل التسليم، الوصف الكامل، المرجع والمرفقات،
+          ضمن القطاعات التي تختارها.
+        </p>
+      </div>
+      <div class="cta-actions">
+        <a class="button button-gold" href="/tarifs">اطّلع على الصيغ</a>
+        <a class="button button-outline" href="/contact">اتصل بنا</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
