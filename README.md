@@ -137,7 +137,112 @@ npm run build
 npm run preview
 ```
 
+## Public platform (Phase 1)
+
+An Arabic-first (RTL), mobile-first site for Algerian public procurement:
+tenders, consultations, provisional awards, auctions, cancellations, deadline
+extensions, notices of default and contract terminations, classified by sector
+and wilaya, with plan-based access to the paid fields.
+
+### Quickstart
+
+```bash
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+
+# Create the schema (Alembic), seed reference data and demo content
+.venv/bin/python -m webapp.cli init-db --demo
+
+# Run the site
+.venv/bin/python -m webapp.cli serve --reload
+```
+
+Open <http://localhost:8000>. Seeded demo content is clearly flagged (`is_sample`)
+and every record carries a `https://example.dz` source URL.
+
+Useful commands:
+
+```bash
+.venv/bin/python -m webapp.cli seed --demo     # reference data + demo content (idempotent)
+.venv/bin/python -m webapp.cli reindex         # rebuild the Arabic FTS index
+.venv/bin/python -m webapp.cli create-user \
+    --phone 0555123456 --company "مؤسسة" --role admin   # password prompted
+```
+
+### Pages
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Home, latest announcements, sector/wilaya shortcuts |
+| `/annonces` | Search, filters (type, sector, wilaya, issuer, date), sort, pagination |
+| `/annonces/{id}/{slug}` | Announcement detail (canonical slug URL) |
+| `/archives`, `/archives/{year}` | Archive by publication year |
+| `/sous-traitance` | Subcontracting offers (contacts gated) |
+| `/tarifs` | Plans and pricing (placeholder prices flagged) |
+| `/contact`, `/conditions-utilisation`, `/confidentialite`, `/cookies` | Static/legal pages |
+| `/connexion` | Phone + password login |
+| `/sitemap.xml`, `/robots.txt`, `/health` | SEO and operations |
+
+### Access model
+
+* **Anonymous / free plan** — title, type, sector, wilaya and publication date.
+* **Paid plan** — issuer, deadline, description, reference, estimated value,
+  attachments and source URL, limited to the sectors attached to the
+  subscription. Platinum covers every sector; the auctions-only plan unlocks
+  auctions exclusively. Staff accounts bypass gating.
+
+Gating is enforced server-side in `webapp/access.py`; the template never
+receives a field the visitor may not see.
+
+### Arabic-aware search
+
+`webapp/text.py` folds alef/hamza variants, ta marbuta/ya, diacritics, tatweel,
+Arabic-Indic digits and Latin accents before indexing and querying. SQLite FTS5
+is used when available; otherwise the repository falls back to escaped `LIKE`
+queries with the same normalisation.
+
+### Database
+
+The platform uses its own database (`storage/platform.db` by default) so the
+legacy scraper pipeline keeps writing to `storage/tenders.db`. Schema changes go
+through Alembic:
+
+```bash
+APP_DATABASE_URL=postgresql+psycopg://user:pass@host/dz .venv/bin/alembic upgrade head
+```
+
+SQLite-only features (FTS5 and its shadow tables) are excluded from autogenerate
+and created in the migration itself. On Postgres the search layer automatically
+uses the `LIKE` path.
+
+Configuration lives in `.env` (see `.env.example`); no secret is committed and
+production requires explicit values.
+
+See [`docs/AUDIT.md`](docs/AUDIT.md) for the Step 0 audit and
+[`docs/PHASE1_REPORT.md`](docs/PHASE1_REPORT.md) for the Phase 1 report.
+
 ## Project Structure
+
+```
+.
+├── api/                 Read-only FastAPI service over the legacy tenders table
+├── crawlers/            Legacy multi-source crawlers
+├── data/                Classification targets and source catalogues
+├── docs/                Audit, diagnostic and phase reports
+├── migrations/          Alembic environment and revisions
+├── notifications/       Telegram / SMTP digest delivery
+├── src/                 React + TypeScript dashboard (Vite)
+├── storage/             Legacy SQLite storage, delivery and tools
+├── tests/               Legacy pipeline tests + Phase 1 platform tests
+└── webapp/              Public Arabic platform
+    ├── web/             FastAPI app, routes and dependencies
+    ├── templates/       Jinja2 RTL templates
+    ├── static/          CSS design system, JS and SVG assets
+    ├── models.py        SQLAlchemy schema (28 tables)
+    ├── search.py        Search filters and FTS5/LIKE queries
+    ├── access.py        Plan-based field gating
+    └── cli.py           init-db / seed / reindex / create-user / serve
+```
 
 ## Blocked Notifications · إدارة الإشعارات المحجوبة
 
