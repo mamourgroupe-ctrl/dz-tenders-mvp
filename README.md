@@ -137,12 +137,17 @@ npm run build
 npm run preview
 ```
 
-## Public platform (Phase 1)
+## Public platform (Phases 1–2)
 
 An Arabic-first (RTL), mobile-first site for Algerian public procurement:
 tenders, consultations, provisional awards, auctions, cancellations, deadline
 extensions, notices of default and contract terminations, classified by sector
-and wilaya, with plan-based access to the paid fields.
+and 69 wilayas, with plan-based access to the paid fields.
+
+Phase 2 adds self-service accounts (phone OTP, email verification, password
+reset), plan subscriptions with **manual** payment (bank transfer, postal
+account, cash) and proof upload, a staff verification queue, subscription
+expiry/renewal reminders and a subscriber dashboard.
 
 ### Quickstart
 
@@ -167,7 +172,13 @@ Useful commands:
 .venv/bin/python -m webapp.cli reindex         # rebuild the Arabic FTS index
 .venv/bin/python -m webapp.cli create-user \
     --phone 0555123456 --company "مؤسسة" --role admin   # password prompted
+.venv/bin/python -m webapp.cli maintenance     # expire subscriptions + renewal emails
 ```
+
+Email and SMS default to the `console` backend, so OTP codes and verification
+links are printed to the server log during development. Set
+`APP_EMAIL_BACKEND=smtp` / `APP_SMS_BACKEND=webhook` and the matching
+credentials in `.env` for real delivery (nothing is committed).
 
 ### Pages
 
@@ -180,7 +191,14 @@ Useful commands:
 | `/sous-traitance` | Subcontracting offers (contacts gated) |
 | `/tarifs` | Plans and pricing (placeholder prices flagged) |
 | `/contact`, `/conditions-utilisation`, `/confidentialite`, `/cookies` | Static/legal pages |
-| `/connexion` | Phone + password login |
+| `/connexion`, `/deconnexion` | Phone + password login/logout |
+| `/inscription`, `/inscription/verifier` | Registration and phone OTP |
+| `/verifier-email?token=…` | Email confirmation link |
+| `/mot-de-passe-oublie`, `/reinitialiser` | Password reset by phone OTP |
+| `/tableau-de-bord` | Subscription, sectors, saved announcements, alert preferences, payments |
+| `/abonnement`, `/paiement/{id}` | Plan/sector checkout and private payment instructions |
+| `/admin/paiements` | Staff queue for manual payment proofs (admin/support) |
+| `/desabonnement?token=…` | One-click alert unsubscribe |
 | `/sitemap.xml`, `/robots.txt`, `/health` | SEO and operations |
 
 ### Access model
@@ -192,14 +210,42 @@ Useful commands:
   auctions exclusively. Staff accounts bypass gating.
 
 Gating is enforced server-side in `webapp/access.py`; the template never
-receives a field the visitor may not see.
+receives a field the visitor may not see. Access is recomputed from the active
+subscription on every request, so an expired or rejected subscription falls
+back to the free view immediately.
+
+### Accounts, subscriptions and payments (Phase 2)
+
+* Registration creates an **inactive** account; a six-digit phone OTP (10-minute
+  TTL, 5 attempts, 60-second resend cooldown) activates it and signs the user in.
+  An email-verification link (48 h, single use) confirms the address.
+* Passwords use argon2id. Password reset is phone + OTP only and revokes every
+  session of the account; an unknown phone gets the same neutral response.
+* Plans and the extra-sector add-on come from the seeded `plans` table. The
+  checkout creates a pending subscription **and** a pending payment, then shows
+  private bank/postal/cash instructions. Prices and bank details are clearly
+  marked placeholders until the client supplies real values.
+* Proofs are validated (PDF/JPEG/PNG magic bytes, ≤ 5 MiB), stored with random
+  names outside `/static`, and served only to their owner or payment staff.
+* An admin/support account approves or rejects the payment; approval activates
+  the subscription, cancels the user's previous active subscription and writes
+  an audit-log entry. `python -m webapp.cli maintenance` expires ended
+  subscriptions and sends one renewal reminder per subscription, seven days
+  before the end by default (idempotent through `reminder_sent_at`).
 
 ### Arabic-aware search
 
 `webapp/text.py` folds alef/hamza variants, ta marbuta/ya, diacritics, tatweel,
-Arabic-Indic digits and Latin accents before indexing and querying. SQLite FTS5
-is used when available; otherwise the repository falls back to escaped `LIKE`
-queries with the same normalisation.
+Arabic-Indic digits and Latin accents before indexing and querying. Three
+strategies share the same filters:
+
+* **PostgreSQL** — `to_tsvector('simple', search_text)` with a GIN expression
+  index and prefix/article variants, plus a trigram index when `pg_trgm` is
+  available (typo tolerance);
+* **SQLite FTS5** — the `announcement_fts` virtual table;
+* **LIKE fallback** — escaped queries with the same normalisation.
+
+The strategy is chosen at runtime (`postgres` → `fts5` → `like`).
 
 ### Database
 
@@ -212,14 +258,16 @@ APP_DATABASE_URL=postgresql+psycopg://user:pass@host/dz .venv/bin/alembic upgrad
 ```
 
 SQLite-only features (FTS5 and its shadow tables) are excluded from autogenerate
-and created in the migration itself. On Postgres the search layer automatically
-uses the `LIKE` path.
+and created in the migration itself. On Postgres the search layer uses the
+generated `tsvector` index and, when the extension is installed, `pg_trgm`.
 
 Configuration lives in `.env` (see `.env.example`); no secret is committed and
 production requires explicit values.
 
-See [`docs/AUDIT.md`](docs/AUDIT.md) for the Step 0 audit and
-[`docs/PHASE1_REPORT.md`](docs/PHASE1_REPORT.md) for the Phase 1 report.
+See [`docs/AUDIT.md`](docs/AUDIT.md) for the Step 0 audit,
+[`docs/PHASE1_REPORT.md`](docs/PHASE1_REPORT.md) for the Phase 1 report and
+[`docs/PHASE2_REPORT.md`](docs/PHASE2_REPORT.md) for accounts, billing,
+maintenance and the Phase 2 test checklist.
 
 ## Project Structure
 
@@ -233,15 +281,20 @@ See [`docs/AUDIT.md`](docs/AUDIT.md) for the Step 0 audit and
 ├── notifications/       Telegram / SMTP digest delivery
 ├── src/                 React + TypeScript dashboard (Vite)
 ├── storage/             Legacy SQLite storage, delivery and tools
-├── tests/               Legacy pipeline tests + Phase 1 platform tests
+├── tests/               Legacy pipeline tests + Phase 1–2 platform tests
 └── webapp/              Public Arabic platform
     ├── web/             FastAPI app, routes and dependencies
     ├── templates/       Jinja2 RTL templates
     ├── static/          CSS design system, JS and SVG assets
-    ├── models.py        SQLAlchemy schema (28 tables)
-    ├── search.py        Search filters and FTS5/LIKE queries
+    ├── models.py        SQLAlchemy schema (30 tables)
+    ├── accounts.py      Registration, OTP, email verification, password reset
+    ├── billing.py       Plans, quotes, manual payments, expiry and reminders
+    ├── uploads.py       Proof validation, storage and traversal guard
+    ├── notifications.py Console/SMTP email providers
+    ├── sms.py           Console/webhook OTP providers
+    ├── search.py        Search filters and Postgres/FTS5/LIKE queries
     ├── access.py        Plan-based field gating
-    └── cli.py           init-db / seed / reindex / create-user / serve
+    └── cli.py           init-db / seed / reindex / create-user / maintenance / serve
 ```
 
 ## Blocked Notifications · إدارة الإشعارات المحجوبة
