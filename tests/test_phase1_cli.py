@@ -41,7 +41,7 @@ def test_init_db_migrates_and_seeds(tmp_path, monkeypatch, capsys) -> None:
     assert main(["init-db", "--demo"]) == 0
     output = capsys.readouterr().out
     assert "Database ready" in output
-    assert "'wilayas': 58" in output
+    assert "'wilayas': 69" in output
     assert "'announcements': 24" in output
 
     tables = _sqlite_tables(db_file)

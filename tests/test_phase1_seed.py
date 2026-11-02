@@ -22,7 +22,7 @@ from webapp.seed_data import WILAYAS
 
 def test_reference_counts(seeded) -> None:
     db = seeded
-    assert db.scalar(select(func.count(Wilaya.id))) == 58
+    assert db.scalar(select(func.count(Wilaya.id))) == 69
     assert db.scalar(select(func.count(Sector.id))) == 16
     assert db.scalar(select(func.count(Issuer.id))) == 20
     assert db.scalar(select(func.count(Plan.id))) == 8
@@ -33,8 +33,8 @@ def test_reference_counts(seeded) -> None:
 def test_wilaya_codes_are_official_and_unique(seeded) -> None:
     codes = [row for row in seeded.scalars(select(Wilaya.code).order_by(Wilaya.code))]
     assert codes == [code for code, _slug, _ar, _fr in sorted(WILAYAS)]
-    assert len(set(codes)) == 58
-    assert codes[0] == "01" and codes[-1] == "58"
+    assert len(set(codes)) == 69
+    assert codes[0] == "01" and codes[-1] == "69"
 
 
 def test_eight_announcement_types_are_present(seeded) -> None:
@@ -94,7 +94,7 @@ def test_seed_is_idempotent(seeded) -> None:
     assert second.announcements == 0
     assert second.offers == 0
     assert seeded.scalar(select(func.count(Announcement.id))) == 24
-    assert seeded.scalar(select(func.count(Wilaya.id))) == 58
+    assert seeded.scalar(select(func.count(Wilaya.id))) == 69
 
 
 def test_fts_index_has_one_row_per_announcement(seeded) -> None:
