@@ -78,7 +78,14 @@ jobs:
           APP_ENV: test
           # Enables the PostgreSQL branch of the search tests (pg_trgm present).
           TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dz_tenders_test
-        run: python -m pytest -o addopts="" -q
+        run: python -m pytest -o addopts="" -q 2>&1 | tee pytest.log
+
+      - name: Annotate test failures
+        if: failure()
+        run: |
+          grep -E "^(FAILED|ERROR) " pytest.log | head -25 | while read -r line; do
+            echo "::error title=Pytest::${line}"
+          done
 
   frontend:
     name: Frontend build
