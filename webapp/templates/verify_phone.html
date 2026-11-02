@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}تأكيد رقم الهاتف — {{ site_name }}{% endblock %}
+{% block description %}إدخال رمز التحقق المرسل إلى رقم هاتفكم.{% endblock %}
+
+{% block content %}
+<div class="container page auth-page">
+  <div class="auth-card">
+    <div class="auth-head">
+      <span class="auth-icon">{{ icon("phone", 24) }}</span>
+      <h1>تأكيد رقم الهاتف</h1>
+      <p>أرسلنا رمزاً من ستة أرقام إلى <strong dir="ltr">{{ phone }}</strong>.</p>
+    </div>
+
+    {% if error %}<div class="alert alert-warning" role="alert">{{ error }}</div>{% endif %}
+    {% if notice %}<div class="alert alert-info" role="status">{{ notice }}</div>{% endif %}
+
+    <form method="post" action="/inscription/verifier" class="auth-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="filter-field">
+        <label for="code">رمز التحقق</label>
+        <input id="code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}"
+               autocomplete="one-time-code" maxlength="6" required>
+        <small class="field-help">الرمز صالح لمدة عشر دقائق وبعدد محاولات محدود.</small>
+      </div>
+      <button class="button button-primary button-block" type="submit">تأكيد وتفعيل الحساب</button>
+    </form>
+
+    <form method="post" action="/inscription/renvoyer" class="resend-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="link-button" type="submit">لم يصلك الرمز؟ أعد الإرسال</button>
+    </form>
+  </div>
+
+  <aside class="auth-aside">
+    <h2>ماذا بعد التفعيل؟</h2>
+    <ul class="check-list">
+      <li>{{ icon("check", 17) }} اختيار صيغة الاشتراك والقطاعات</li>
+      <li>{{ icon("check", 17) }} رفع وصل الدفع اليدوي</li>
+      <li>{{ icon("check", 17) }} تفعيل الحساب بعد مراجعة الوصل</li>
+    </ul>
+    <p class="muted">تعذر استلام الرمز؟ <a href="/contact">اتصل بنا</a>.</p>
+  </aside>
+</div>
+{% endblock %}

@@ -60,14 +60,20 @@ def test_search_tokens_drop_punctuation() -> None:
 
 def test_fts_query_is_prefix_and_uses_and() -> None:
     query = build_fts_query("أنابيب مياه")
-    assert query == '"انابيب"* AND "مياه"*'
+    assert query == '("انابيب"* OR "الانابيب"*) AND ("مياه"* OR "المياه"*)'
 
 
-def test_fts_query_removes_operators_and_quotes() -> None:
+def test_fts_query_strips_leading_article_variant() -> None:
+    assert build_fts_query("المياه") == '("المياه"* OR "مياه"*)'
+
+
+def test_fts_query_quotes_user_operators_as_tokens() -> None:
     query = build_fts_query('PVC " OR * NEAR(')
     assert '"' in query
     assert query.count('"') % 2 == 0
-    assert " OR " not in query
+    # "OR" is treated as a literal token, never as an FTS operator.
+    assert '"or"*' in query
+    assert "OR *" not in query
     assert query.count("AND") >= 1
 
 

@@ -7,13 +7,10 @@ import logging
 import unicodedata
 from urllib.parse import urljoin
 
-import requests
-import urllib3
 from bs4 import BeautifulSoup
 
 from .base_crawler import BaseCrawler, sanitize_url
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from .http import get as http_get
 
 
 class SmartCrawler(BaseCrawler):
@@ -76,7 +73,7 @@ class SmartCrawler(BaseCrawler):
             "Accept-Language": "ar,fr;q=0.9,en;q=0.8",
         }
         try:
-            r = requests.get(url, headers=headers, timeout=20, verify=False)
+            r = http_get(url, source="smart", headers=headers, timeout=20)
             r.encoding = r.apparent_encoding or "utf-8"
             return r.text if r.status_code == 200 else ""
         except Exception as e:

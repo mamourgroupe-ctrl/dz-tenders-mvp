@@ -36,13 +36,57 @@
   </div>
 
   {% if page.title == "اتصل بنا" %}
-    <div class="contact-note">
-      <h2>نموذج المراسلة</h2>
-      <p>
-        نموذج الاتصال الإلكتروني يُفتح في المرحلة الثانية (مع الحماية من الرسائل المزعجة).
-        في الوقت الحالي، استعمل البريد الإلكتروني أو الهاتف المذكورين أعلاه.
-      </p>
-    </div>
+    <section class="contact-form-section" aria-labelledby="contact-form-title">
+      <h2 id="contact-form-title">نموذج المراسلة</h2>
+      {% if form_success %}
+        <div class="alert alert-success" role="status">
+          {{ icon("check", 18) }}
+          <div>تم إرسال رسالتك. سيتواصل معك فريقنا عبر البريد الإلكتروني المذكور.</div>
+        </div>
+      {% endif %}
+      {% if form_error %}
+        <div class="alert alert-warning" role="alert">{{ form_error }}</div>
+      {% endif %}
+
+      <form method="post" action="/contact" class="contact-form auth-form" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="form-honeypot" aria-hidden="true">
+          <label for="website">الموقع</label>
+          <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <div class="filter-field">
+          <label for="contact-name">الاسم الكامل</label>
+          <input id="contact-name" name="name" type="text" autocomplete="name"
+                 value="{{ form_values.get('name', '') }}" maxlength="120" required>
+        </div>
+        <div class="filter-field">
+          <label for="contact-email">البريد الإلكتروني</label>
+          <input id="contact-email" name="email" type="email" inputmode="email"
+                 autocomplete="email" value="{{ form_values.get('email', '') }}"
+                 maxlength="254" required>
+        </div>
+        <div class="filter-field">
+          <label for="contact-phone">الهاتف (اختياري)</label>
+          <input id="contact-phone" name="phone" type="tel" inputmode="tel"
+                 autocomplete="tel" value="{{ form_values.get('phone', '') }}"
+                 placeholder="0555 12 34 56" maxlength="40">
+        </div>
+        <div class="filter-field">
+          <label for="contact-subject">الموضوع (اختياري)</label>
+          <input id="contact-subject" name="subject" type="text"
+                 value="{{ form_values.get('subject', '') }}" maxlength="160">
+        </div>
+        <div class="filter-field">
+          <label for="contact-message">الرسالة</label>
+          <textarea id="contact-message" name="message" rows="6" minlength="10"
+                    maxlength="4000" required>{{ form_values.get('message', '') }}</textarea>
+          <small class="field-help">10 أحرف على الأقل، 4000 كحد أقصى.</small>
+        </div>
+
+        <button class="button button-primary" type="submit">إرسال الرسالة</button>
+      </form>
+    </section>
   {% endif %}
 </div>
 {% endblock %}

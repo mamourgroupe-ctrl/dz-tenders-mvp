@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}وصل الدفع #{{ payment.id }} — {{ site_name }}{% endblock %}
+{% block description %}تعليمات الدفع اليدوي ورفع وصل الدفع.{% endblock %}
+
+{% block content %}
+<div class="container page narrow-page">
+  <nav class="breadcrumbs" aria-label="مسار التنقل">
+    <a href="/tableau-de-bord">لوحة التحكم</a><span aria-hidden="true">/</span>
+    <span>وصل الدفع #{{ payment.id }}</span>
+  </nav>
+
+  <header class="page-header">
+    <div>
+      <h1>وصل الدفع #{{ payment.id }}</h1>
+      <p class="lead">{{ payment.plan.name_ar }} — {{ payment.amount_dzd|dzd }}
+        ({{ "سنوي" if payment.billing_period == "annual" else "شهري" }})</p>
+    </div>
+  </header>
+
+  {% if success %}<div class="alert alert-success" role="status">تم استلام الوصل. سيتم التحقق منه قريباً.</div>{% endif %}
+  {% if error %}<div class="alert alert-warning" role="alert">{{ error }}</div>{% endif %}
+
+  <section class="dashboard-card">
+    <h2>الحالة</h2>
+    <p>
+      <span class="badge {% if payment.status == 'verified' %}badge-plan{% elif payment.status == 'rejected' %}badge-cancelled{% else %}badge-sample{% endif %}">
+        {{ {"pending": "بانتظار التحقق", "verified": "مؤكد", "rejected": "مرفوض"}.get(payment.status.value, payment.status.value) }}
+      </span>
+      <span class="muted">أُنشئ في {{ payment.submitted_at|date_ar }}</span>
+    </p>
+    {% if payment.admin_notes %}
+      <p class="muted">ملاحظة الإدارة: {{ payment.admin_notes }}</p>
+    {% endif %}
+
+    {% if payment.status == "pending" %}
+      <div class="alert alert-info" role="note">
+        {{ icon("info", 18) }}
+        <div>
+          <strong>تفاصيل الحساب البنكي والبريدي تُضاف عند تأكيدها.</strong>
+          استعمل المرجع <span dir="ltr">{{ payment.reference or "—" }}</span> في وصل التحويل
+          ثم ارفع صورة الوصل (PDF أو JPEG/PNG، 5 ميغابايت كحد أقصى).
+        </div>
+      </div>
+
+      {% if payment.proof_filename %}
+        <p class="muted">الوصل المرفق: {{ payment.proof_original_name }}
+          ({{ ((payment.proof_size_bytes or 0) / 1024)|round|int }} كيلوبايت)</p>
+      {% endif %}
+
+      <form method="post" action="/paiement/{{ payment.id }}/preuve"
+            enctype="multipart/form-data" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="filter-field">
+          <label for="proof">وصل الدفع</label>
+          <input id="proof" name="proof" type="file"
+                 accept="application/pdf,image/jpeg,image/png" required>
+          <small class="field-help">PDF أو JPEG أو PNG. يُتحقق من محتوى الملف لا من امتداده فقط.</small>
+        </div>
+        <button class="button button-primary" type="submit">رفع الوصل</button>
+      </form>
+    {% else %}
+      <p>
+        <a class="button button-ghost" href="/paiement/{{ payment.id }}/preuve">عرض الوصل المرفق</a>
+        <a class="button button-primary" href="/tableau-de-bord">العودة إلى لوحة التحكم</a>
+      </p>
+    {% endif %}
+  </section>
+
+  <section class="dashboard-card">
+    <h2>ملخص الطلب</h2>
+    <dl class="info-grid">
+      <div><dt>الصيغة</dt><dd>{{ payment.plan.name_ar }}</dd></div>
+      <div><dt>المبلغ</dt><dd>{{ payment.amount_dzd|dzd }}</dd></div>
+      <div><dt>طريقة الدفع</dt>
+        <dd>{{ {"bank_transfer": "تحويل بنكي", "postal_account": "حساب بريدي", "cash": "نقداً"}.get(payment.method.value, payment.method.value) }}</dd></div>
+      <div><dt>المرجع</dt><dd dir="ltr">{{ payment.reference or "—" }}</dd></div>
+    </dl>
+  </section>
+</div>
+{% endblock %}

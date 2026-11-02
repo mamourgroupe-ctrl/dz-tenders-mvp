@@ -42,11 +42,19 @@ target_metadata = Base.metadata
 
 
 def include_object(obj, name: str, type_: str, reflected: bool, compare_to) -> bool:
-    """Keep the FTS5 virtual table and its shadow tables out of autogenerate."""
-    is_fts = type_ == "table" and (
-        name == "announcement_fts" or str(name).startswith("announcement_fts_")
-    )
-    return not is_fts
+    """Exclude hand-written search structures from autogenerate.
+
+    The SQLite FTS5 virtual table, its shadow tables and the PostgreSQL
+    expression/trigram indexes are created by migrations rather than by
+    ``Base.metadata``, so Alembic must not try to drop them.
+    """
+    if type_ == "table":
+        return not (
+            name == "announcement_fts" or str(name).startswith("announcement_fts_")
+        )
+    if type_ == "index":
+        return not str(name).startswith("ix_announcements_search_")
+    return True
 
 
 def run_migrations_offline() -> None:

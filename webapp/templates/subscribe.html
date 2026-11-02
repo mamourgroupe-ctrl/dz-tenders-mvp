@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}تفعيل الاشتراك — {{ site_name }}{% endblock %}
+{% block description %}اختيار الصيغة والقطاعات وطريقة الدفع اليدوي.{% endblock %}
+
+{% block content %}
+<div class="container page">
+  <nav class="breadcrumbs" aria-label="مسار التنقل">
+    <a href="/">الرئيسية</a><span aria-hidden="true">/</span>
+    <a href="/tarifs">الاشتراكات</a><span aria-hidden="true">/</span><span>تفعيل</span>
+  </nav>
+
+  <header class="page-header">
+    <div>
+      <h1>تفعيل الاشتراك</h1>
+      <p class="lead">اختر الصيغة والمدة والقطاعات، ثم طريقة الدفع وارفع وصل الدفع.</p>
+    </div>
+  </header>
+
+  {% if error %}<div class="alert alert-warning" role="alert">{{ error }}</div>{% endif %}
+
+  <div class="alert alert-info" role="note">
+    {{ icon("info", 18) }}
+    <div>
+      الأسعار المعروضة مؤقتة (Placeholder). تفاصيل الحساب البنكي والبريدي
+      <strong>تُضاف عند تأكيدها</strong>، ولن تُعرض أرقام غير مؤكدة.
+    </div>
+  </div>
+
+  <div class="checkout-grid">
+    <form method="post" action="/abonnement" class="auth-form checkout-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+      <fieldset class="checkout-fieldset">
+        <legend>الصيغة</legend>
+        <div class="plan-options">
+          {% for option in plans %}
+            <label class="plan-option {% if option.id == plan.id %}selected{% endif %}">
+              <input type="radio" name="plan" value="{{ option.code }}"
+                     {% if option.id == plan.id %}checked{% endif %} required>
+              <span class="plan-option-name">{{ option.name_ar }}</span>
+              <span class="plan-option-price">{{ option.price_monthly_dzd|dzd }} / شهر</span>
+              <small>
+                {% if option.sector_limit is none %}كل القطاعات{% else %}{{ option.sector_limit }} قطاع{% endif %}
+                {% if option.auctions_only %} — المزادات فقط{% endif %}
+              </small>
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <fieldset class="checkout-fieldset">
+        <legend>مدة الاشتراك</legend>
+        <label class="checkbox-item">
+          <input type="radio" name="period" value="monthly" checked>
+          <span>شهري — {{ plan.price_monthly_dzd|dzd }}</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="radio" name="period" value="annual">
+          <span>سنوي — {{ plan.price_annual_dzd|dzd }}
+            {% if plan.annual_discount_percent %}
+              <span class="badge badge-discount">-{{ plan.annual_discount_percent }}%</span>
+            {% endif %}
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset class="checkout-fieldset">
+        <legend>القطاعات</legend>
+        <p class="field-help">
+          تشمل الصيغة {{ plan.sector_limit if plan.sector_limit is not none else "كل" }} قطاعاً.
+          كل قطاع إضافي يُحتسب بسعر {{ addon_price|dzd }} شهرياً.
+        </p>
+        <div class="checkbox-grid">
+          {% for sector in sectors %}
+            <label class="checkbox-item">
+              <input type="checkbox" name="sectors" value="{{ sector.id }}"
+                     {% if sector.id in interests %}checked{% endif %}>
+              <span>{{ sector.name_ar }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <fieldset class="checkout-fieldset">
+        <legend>طريقة الدفع</legend>
+        {% for method in methods %}
+          <label class="checkbox-item">
+            <input type="radio" name="method" value="{{ method.value }}"
+                   {% if loop.first %}checked{% endif %} required>
+            <span>
+              {% if method.value == "bank_transfer" %}تحويل بنكي
+              {% elif method.value == "postal_account" %}حساب بريدي (CCP)
+              {% else %}دفع نقدي{% endif %}
+            </span>
+          </label>
+        {% endfor %}
+        <div class="filter-field">
+          <label for="reference">مرجع التحويل أو رقم الوصل</label>
+          <input id="reference" name="reference" type="text" maxlength="120"
+                 placeholder="مطلوب للتحويل البريدي أو البنكي">
+        </div>
+      </fieldset>
+
+      <button class="button button-primary button-block" type="submit">متابعة إلى الدفع</button>
+    </form>
+
+    <aside class="checkout-summary">
+      <h2>ملخص الطلب</h2>
+      <dl class="info-grid">
+        <div><dt>الصيغة</dt><dd>{{ plan.name_ar }}</dd></div>
+        <div><dt>السعر الشهري</dt><dd>{{ plan.price_monthly_dzd|dzd }}</dd></div>
+        <div><dt>السعر السنوي</dt><dd>{{ plan.price_annual_dzd|dzd }}</dd></div>
+        <div><dt>سعر القطاع الإضافي</dt><dd>{{ addon_price|dzd }} / شهر</dd></div>
+      </dl>
+      <p class="muted">
+        يُحتسب المبلغ النهائي عند التأكيد حسب عدد القطاعات المختارة والمدة.
+        الاشتراك السنوي يمنح خصماً مقارنة بالدفع الشهري.
+      </p>
+      <ol class="steps-list">
+        <li>تُنشأ فاتورة بحالة «بانتظار التحقق».</li>
+        <li>تودع المبلغ وتُرفع صورة الوصل.</li>
+        <li>يراجع فريق الإدارة الوصل ويُفعّل الاشتراك.</li>
+      </ol>
+    </aside>
+  </div>
+</div>
+{% endblock %}

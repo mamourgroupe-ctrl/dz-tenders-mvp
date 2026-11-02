@@ -291,7 +291,8 @@ def test_pricing_page_marks_placeholder_prices(client, seeded) -> None:
     assert "الأسعار المعروضة مؤقتة" in response.text
     assert "بلاتيني" in response.text
     assert "المزادات فقط" in response.text
-    assert "التفعيل قريباً" in response.text
+    assert "اشترك الآن" in response.text
+    assert "/abonnement?plan=" in response.text
 
 
 def test_login_page_and_protected_redirect(client, seeded) -> None:

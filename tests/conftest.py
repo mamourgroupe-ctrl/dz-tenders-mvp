@@ -69,10 +69,13 @@ def seeded(db: Session) -> Session:
 
 
 @pytest.fixture
-def settings(database_url) -> Settings:
-    """App settings bound to the temporary database."""
+def settings(database_url, tmp_path) -> Settings:
+    """App settings bound to the temporary database and upload directory."""
     return Settings(
         app_env="test",
+        upload_dir=str(tmp_path / "uploads"),
+        email_backend="console",
+        sms_backend="console",
         database_url=database_url,
         base_url="http://testserver",
         cookie_secure=False,

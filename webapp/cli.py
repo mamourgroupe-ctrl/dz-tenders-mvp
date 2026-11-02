@@ -6,7 +6,12 @@ Examples::
     python -m webapp.cli seed --demo
     python -m webapp.cli create-user --phone 0555123456 --company "مؤسسة"
     python -m webapp.cli reindex
+    python -m webapp.cli maintenance
     python -m webapp.cli serve --port 8000
+
+``maintenance`` is the job the scheduler runs daily: it expires ended
+subscriptions and sends the renewal reminder once per subscription. Phase 3
+adds the announcement digest as a sibling command on the same schedule.
 """
 
 from __future__ import annotations
@@ -19,11 +24,14 @@ import sys
 from alembic import command as alembic_command
 from alembic.config import Config as AlembicConfig
 
+from webapp import billing
 from webapp.config import REPO_ROOT, Settings
 from webapp.db import ensure_fts, make_engine, make_session_factory, session_scope
 from webapp.enums import UserRole
+from webapp.notifications import build_email_provider, renewal_email
 from webapp.search_index import rebuild_index
 from webapp.seed import create_user, load_wilayas_override, seed_all
+from webapp.timeutils import days_until, format_date_ar, utcnow
 
 logger = logging.getLogger("webapp.cli")
 
@@ -126,6 +134,36 @@ def cmd_create_user(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_maintenance(args: argparse.Namespace) -> int:
+    """Expire ended subscriptions and send renewal reminders.
+
+    Meant for a daily cron/worker tick; both operations are idempotent, so a
+    re-run after a crash never duplicates an email (``reminder_sent_at``).
+    """
+    settings = _settings()
+    days = args.days if args.days is not None else settings.renewal_reminder_days
+    provider = build_email_provider(settings)
+
+    def send(subscription) -> None:
+        user = subscription.user
+        message = renewal_email(
+            settings,
+            to=user.email or "",
+            company_name=user.company_name,
+            plan_name=subscription.plan.name_ar,
+            days_left=max(days_until(subscription.ends_at, now=utcnow()) or 0, 0),
+            ends_at=format_date_ar(subscription.ends_at),
+        )
+        provider.send(message)
+
+    _engine, factory = _session(settings)
+    with session_scope(factory) as db:
+        summary = billing.run_maintenance(db, days=days, send=send)
+
+    print(f"Maintenance: {summary.as_dict()}")
+    return 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     """Run the development server through Uvicorn."""
     import uvicorn
@@ -171,6 +209,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="account role",
     )
     user.set_defaults(func=cmd_create_user)
+
+    maintenance = sub.add_parser(
+        "maintenance", help="expire subscriptions and send renewal reminders"
+    )
+    maintenance.add_argument(
+        "--days",
+        type=int,
+        default=None,
+        help="reminder window in days (defaults to APP_RENEWAL_REMINDER_DAYS)",
+    )
+    maintenance.set_defaults(func=cmd_maintenance)
 
     serve = sub.add_parser("serve", help="run the web application locally")
     serve.add_argument("--host", default="0.0.0.0")

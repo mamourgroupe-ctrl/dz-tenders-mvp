@@ -98,8 +98,8 @@ class BannerPlacement(StrEnum):
 class TokenPurpose(StrEnum):
     """One-time token purposes."""
 
+    PHONE_OTP = "phone_otp"
     VERIFY_EMAIL = "verify_email"
-    RESET_PASSWORD = "reset_password"
 
 
 class AlertFrequency(StrEnum):

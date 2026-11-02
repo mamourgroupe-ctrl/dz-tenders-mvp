@@ -58,8 +58,8 @@ def load_wilayas_override(path: str) -> list[tuple[str, str, str, str]]:
     """Load a client-supplied wilaya list from JSON.
 
     Expected format: a list of objects with ``code``, ``name_ar``, ``name_fr``
-    and optional ``slug``. This is how the 69-entry list (open question O1) can
-    be applied without a code change.
+    and optional ``slug``. It replaces the bundled 69-wilaya list without a
+    code change, e.g. for a client-specific segmentation.
 
     Args:
         path: JSON file path.

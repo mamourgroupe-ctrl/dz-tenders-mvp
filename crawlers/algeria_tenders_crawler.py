@@ -2,13 +2,10 @@ import logging
 import unicodedata
 from urllib.parse import urljoin
 
-import requests
-import urllib3
 from bs4 import BeautifulSoup
 
 from .base_crawler import BaseCrawler, sanitize_url
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from .http import get as http_get
 
 
 class AlgeriaTendersCrawler(BaseCrawler):
@@ -54,7 +51,7 @@ class AlgeriaTendersCrawler(BaseCrawler):
     def fetch_page(self, url):
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         try:
-            response = requests.get(url, headers=headers, timeout=15, verify=False)
+            response = http_get(url, source="algeria_tenders", headers=headers, timeout=15)
             response.encoding = "utf-8"
             return response.text if response.status_code == 200 else None
         except Exception as e:

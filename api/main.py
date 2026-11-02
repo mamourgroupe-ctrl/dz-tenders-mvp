@@ -220,6 +220,20 @@ def create_app(
         """Return daily first-seen counts for the last 30 days."""
         return [TimelinePoint(**point) for point in repository.timeline(today_provider())]
 
+    @app.middleware("http")
+    async def _security_headers(request: Request, call_next):
+        """Defensive headers for a JSON-only, read-only API."""
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+        )
+        response.headers.setdefault("Cross-Origin-Resource-Policy", "same-site")
+        return response
+
     app.include_router(router)
     return app
 

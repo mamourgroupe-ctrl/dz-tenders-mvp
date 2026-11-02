@@ -141,13 +141,27 @@ async def login_submit(
 
     user = db.scalar(select(User).where(User.phone == phone))
     password_ok = verify_password(password, user.password_hash if user else None)
-    if user is None or not password_ok or not user.is_active:
+    if user is None or not password_ok:
         return _login_page(
             ctx,
             error=GENERIC_LOGIN_ERROR,
             phone=phone_raw,
             next_url=next_url,
         )
+    if not user.is_active:
+        # Correct password, but the phone was never verified: resume the OTP
+        # flow instead of pretending the credentials are wrong.
+        response = RedirectResponse("/inscription/verifier", status_code=303)
+        response.set_cookie(
+            "dz_pending_phone",
+            user.phone,
+            max_age=30 * 60,
+            httponly=True,
+            secure=settings.secure_cookies,
+            samesite="lax",
+            path="/inscription",
+        )
+        return response
 
     limiter.clear("login_phone", phone)
     old_token = request.cookies.get(SESSION_COOKIE)

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}إنشاء حساب — {{ site_name }}{% endblock %}
+{% block description %}إنشاء حساب مشترك للاطلاع على تفاصيل المناقصات الجزائرية.{% endblock %}
+
+{% block content %}
+<div class="container page narrow-page">
+  <nav class="breadcrumbs" aria-label="مسار التنقل">
+    <a href="/">الرئيسية</a><span aria-hidden="true">/</span><span>إنشاء حساب</span>
+  </nav>
+
+  <header class="page-header">
+    <div>
+      <h1>إنشاء حساب</h1>
+      <p class="lead">
+        حساب واحد لكل مؤسسة. يُرسل رمز تحقق إلى رقم الهاتف قبل تفعيل الحساب،
+        ثم رابط تأكيد إلى بريدكم الإلكتروني.
+      </p>
+    </div>
+  </header>
+
+  {% if error %}
+    <div class="alert alert-warning" role="alert">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="/inscription" class="auth-form register-form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <div class="filter-field">
+      <label for="company">اسم المؤسسة</label>
+      <input id="company" name="company" type="text" autocomplete="organization"
+             value="{{ values.get('company', '') }}" maxlength="200" required>
+    </div>
+
+    <div class="filter-field">
+      <label for="phone">رقم الهاتف</label>
+      <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"
+             value="{{ values.get('phone', '') }}" placeholder="0555 12 34 56" required>
+      <small class="field-help">رقم جزائري: 05 أو 06 أو 07 متبوعاً بثمانية أرقام. يُستعمل لتسجيل الدخول.</small>
+    </div>
+
+    <div class="filter-field">
+      <label for="email">البريد الإلكتروني</label>
+      <input id="email" name="email" type="email" inputmode="email" autocomplete="email"
+             value="{{ values.get('email', '') }}" maxlength="254" required>
+      <small class="field-help">لتأكيد الحساب واستقبال تنبيهات الجديد.</small>
+    </div>
+
+    <div class="filter-field">
+      <label for="password">كلمة المرور</label>
+      <input id="password" name="password" type="password" autocomplete="new-password"
+             minlength="8" maxlength="128" required>
+    </div>
+    <div class="filter-field">
+      <label for="password_confirm">تأكيد كلمة المرور</label>
+      <input id="password_confirm" name="password_confirm" type="password"
+             autocomplete="new-password" minlength="8" maxlength="128" required>
+    </div>
+
+    <fieldset class="sector-fieldset">
+      <legend>القطاعات التي تهمكم</legend>
+      <p class="field-help">تظهر لاحقاً كاقتراح افتراضي عند اختيار الاشتراك.</p>
+      <div class="checkbox-grid">
+        {% for sector in sectors %}
+          <label class="checkbox-item">
+            <input type="checkbox" name="sectors" value="{{ sector.id }}"
+                   {% if sector.id|string in values.get('sectors', []) %}checked{% endif %}>
+            <span>{{ sector.name_ar }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <label class="checkbox-item terms-check">
+      <input type="checkbox" name="terms" value="on" required>
+      <span>أوافق على <a href="/conditions-utilisation" target="_blank" rel="noopener">شروط الاستخدام</a>
+        و<a href="/confidentialite" target="_blank" rel="noopener">سياسة الخصوصية</a>.</span>
+    </label>
+
+    <button class="button button-primary button-block" type="submit">إنشاء الحساب</button>
+  </form>
+
+  <p class="auth-note">لديك حساب بالفعل؟ <a href="/connexion">تسجيل الدخول</a></p>
+</div>
+{% endblock %}

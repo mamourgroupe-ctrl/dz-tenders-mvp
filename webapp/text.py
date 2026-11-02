@@ -99,6 +99,28 @@ def search_tokens(text: str) -> list[str]:
     return [token for token in normalize_search(text).split(" ") if token]
 
 
+#: Minimum token length before the Arabic definite article is probed.
+_ARTICLE_MIN = 3
+
+
+def search_token_variants(token: str) -> list[str]:
+    """Return the token plus its optional ``ال`` (definite article) variant.
+
+    Arabic writes the article attached to the noun (``المياه``), while users
+    often type the bare form (``مياه``). Matching both directions keeps recall
+    high without a full morphological analyser.
+    """
+    variants = [token]
+    is_arabic = any("\u0600" <= char <= "\u06ff" for char in token)
+    if not is_arabic:
+        return variants
+    if token.startswith("ال") and len(token) > _ARTICLE_MIN + 1:
+        variants.append(token[2:])
+    elif len(token) >= _ARTICLE_MIN:
+        variants.append(f"ال{token}")
+    return variants
+
+
 def build_fts_query(text: str, *, mode: str = "and") -> str:
     """Build a safe FTS5 MATCH expression from user text.
 
@@ -116,7 +138,28 @@ def build_fts_query(text: str, *, mode: str = "and") -> str:
     if not tokens:
         return ""
     joiner = " OR " if mode == "or" else " AND "
-    return joiner.join(f'"{token}"*' for token in tokens[:8])
+    groups = []
+    for token in tokens[:8]:
+        parts = [f'"{variant}"*' for variant in search_token_variants(token)]
+        groups.append(f"({parts[0]})" if len(parts) == 1 else f"({' OR '.join(parts)})")
+    return joiner.join(groups)
+
+
+def build_tsquery(text: str) -> str:
+    """Build a PostgreSQL ``to_tsquery`` expression from user text.
+
+    Tokens are already normalised by :func:`normalize_search`, so only word
+    characters reach the expression. Each token is a prefix match with an
+    optional definite-article variant.
+    """
+    tokens = search_tokens(text)
+    if not tokens:
+        return ""
+    groups = []
+    for token in tokens[:8]:
+        parts = [f"{variant}:*" for variant in search_token_variants(token)]
+        groups.append(f"({' | '.join(parts)})")
+    return " & ".join(groups)
 
 
 def slugify(text: str, fallback: str = "annonce", max_length: int = 90) -> str:
