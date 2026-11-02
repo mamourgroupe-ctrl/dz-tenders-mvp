@@ -13,3 +13,5 @@ alembic>=1.13,<2.0
 jinja2>=3.1,<4.0
 argon2-cffi>=23.1,<26.0
 python-multipart>=0.0.9,<0.1
+# PostgreSQL driver (production deployments and the pg_trgm search tests).
+psycopg[binary]>=3.1,<4.0

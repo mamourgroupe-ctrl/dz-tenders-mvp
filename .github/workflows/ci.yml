@@ -29,7 +29,7 @@ jobs:
       - name: Ruff
         run: ruff check .
       - name: Black
-        run: black --check webapp migrations tests/conftest.py tests/test_phase1_*.py
+        run: black --check webapp migrations tests/conftest.py tests/test_phase*.py
 
   typecheck:
     name: Type check
@@ -52,6 +52,19 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.11', '3.12']
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dz_tenders_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -63,6 +76,8 @@ jobs:
       - name: Run the suite
         env:
           APP_ENV: test
+          # Enables the PostgreSQL branch of the search tests (pg_trgm present).
+          TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dz_tenders_test
         run: python -m pytest -o addopts="" -q
 
   frontend:
