@@ -8,12 +8,14 @@ tests against a ``postgres:16`` service container (which ships ``pg_trgm``).
 from __future__ import annotations
 
 import os
+import time
 from datetime import timedelta
 
 import pytest
 from alembic import command
 from alembic.config import Config as AlembicConfig
-from sqlalchemy import func, select, text
+from sqlalchemy import create_engine, func, select, text
+from sqlalchemy.exc import OperationalError
 
 from webapp.db import make_engine, make_session_factory, session_scope
 from webapp.enums import AnnouncementStatus, AnnouncementType
@@ -30,6 +32,7 @@ def postgres_url(tmp_path_factory):
     """Use ``TEST_POSTGRES_URL`` when provided, else a temporary pgserver cluster."""
     configured = os.getenv("TEST_POSTGRES_URL", "").strip()
     if configured:
+        _wait_for_postgres(configured)
         yield configured
         return
 
@@ -42,6 +45,24 @@ def postgres_url(tmp_path_factory):
         yield url
     finally:
         server.cleanup()
+
+
+def _wait_for_postgres(url: str, timeout: float = 30.0) -> None:
+    """Wait for a CI service container to accept connections."""
+    engine = create_engine(url)
+    deadline = time.monotonic() + timeout
+    try:
+        while True:
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+                return
+            except OperationalError:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(1)
+    finally:
+        engine.dispose()
 
 
 @pytest.fixture(scope="module")
