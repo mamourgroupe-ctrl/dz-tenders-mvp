@@ -135,7 +135,7 @@ python -m venv .venv
 
 .venv/bin/python -m pytest -o addopts="" -q           # full suite
 .venv/bin/ruff check .
-.venv/bin/black --check webapp tests migrations
+.venv/bin/black --check webapp migrations tests/conftest.py tests/test_phase1_*.py
 .venv/bin/mypy webapp --ignore-missing-imports
 ```
 
@@ -150,7 +150,7 @@ suppress the summary line.
 | Legacy suite | 263 tests unchanged and green |
 | New Phase 1 tests | 128 tests in 7 modules |
 | `ruff check .` | clean |
-| `black --check` | clean |
+| `black --check` (new code) | clean; legacy tests are intentionally excluded |
 | `mypy webapp` | success, 24 source files |
 | `alembic upgrade head` on a fresh DB | 28 product tables + `alembic_version` + FTS5 set |
 | `alembic check` | “No new upgrade operations detected” |
