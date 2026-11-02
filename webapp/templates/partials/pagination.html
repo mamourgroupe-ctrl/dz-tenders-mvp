@@ -1,0 +1,28 @@
+{% from "partials/icons.html" import icon %}
+{% if result.pages > 1 %}
+<nav class="pagination" aria-label="التنقل بين الصفحات">
+  <a class="page-link {% if not result.has_previous %}is-disabled{% endif %}"
+     {% if result.has_previous %}href="{{ page_url(request, result.page - 1) }}"{% else %}aria-disabled="true" tabindex="-1"{% endif %}>
+    {{ icon("arrow-right", 16) }}<span>السابق</span>
+  </a>
+
+  <ul class="page-numbers">
+    {% for number in result.page_numbers %}
+      {% if number %}
+        <li>
+          <a class="page-link {% if number == result.page %}is-current{% endif %}"
+             href="{{ page_url(request, number) }}"
+             {% if number == result.page %}aria-current="page"{% endif %}>{{ number }}</a>
+        </li>
+      {% else %}
+        <li class="page-ellipsis" aria-hidden="true">…</li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+
+  <a class="page-link {% if not result.has_next %}is-disabled{% endif %}"
+     {% if result.has_next %}href="{{ page_url(request, result.page + 1) }}"{% else %}aria-disabled="true" tabindex="-1"{% endif %}>
+    <span>التالي</span>{{ icon("arrow-left", 16) }}
+  </a>
+</nav>
+{% endif %}

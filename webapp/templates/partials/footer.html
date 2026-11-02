@@ -1,0 +1,55 @@
+{% from "partials/icons.html" import icon %}
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <div class="footer-logo">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="11" fill="#0c1f33"/>
+            <path d="M11 29V17.5L20 11l9 6.5V29" stroke="#e3a21a" stroke-width="2.6" stroke-linejoin="round"/>
+            <path d="M15.5 29v-6.5h9V29" stroke="#0f8b8d" stroke-width="2.6" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <strong>{{ site_name }}</strong>
+      </div>
+      <p>{{ site_tagline }}. إعلانات المناقصات والاستشارات والإسنادات المؤقتة والمزادات والإلغاءات وتمديدات الآجال والإعذارات وفسخ العقود، حسب الولاية والقطاع.</p>
+      <p class="footer-note">الإعلان الرسمي للجهة صاحبة المشروع يبقى المرجع الوحيد. المنصة أداة اطلاع لا طرف تعاقدي.</p>
+    </div>
+
+    <nav class="footer-links" aria-label="روابط المنصة">
+      <h2>المنصة</h2>
+      <ul>
+        <li><a href="/annonces">المناقصات</a></li>
+        <li><a href="/archives">الأرشيف حسب السنة</a></li>
+        <li><a href="/sous-traitance">عروض من الباطن</a></li>
+        <li><a href="/tarifs">صيغ الاشتراك</a></li>
+      </ul>
+    </nav>
+
+    <nav class="footer-links" aria-label="روابط قانونية">
+      <h2>معلومات قانونية</h2>
+      <ul>
+        <li><a href="/conditions-utilisation">شروط الاستخدام</a></li>
+        <li><a href="/confidentialite">سياسة الخصوصية</a></li>
+        <li><a href="/cookies">ملفات تعريف الارتباط</a></li>
+        <li><a href="/contact">اتصل بنا</a></li>
+      </ul>
+    </nav>
+
+    <div class="footer-contact">
+      <h2>تواصل</h2>
+      <ul>
+        <li>{{ icon("mail", 16) }} <a href="mailto:{{ settings.contact_email }}">{{ settings.contact_email }}</a></li>
+        {% if settings.contact_phone %}
+          <li>{{ icon("phone", 16) }} <span dir="ltr">{{ settings.contact_phone }}</span></li>
+        {% endif %}
+        <li>{{ icon("pin", 16) }} قسنطينة، الجزائر</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="container footer-bottom">
+    <p>© {{ current_year }} {{ site_name }} — جميع الحقوق محفوظة.</p>
+    <p class="footer-legal">المعطيات التجريبية موسومة بكلمة «نموذج». الأسعار المعروضة مؤقتة إلى حين تأكيدها.</p>
+  </div>
+</footer>

@@ -1,0 +1,42 @@
+{% from "partials/icons.html" import icon %}
+{% set a = view.announcement %}
+<article class="card announcement-card">
+  <div class="card-top">
+    <span class="badge badge-{{ a.type|type_class }}">{{ a.type|type_label }}</span>
+    {% if a.is_sample %}<span class="badge badge-sample">نموذج</span>{% endif %}
+    {% if view.unlocked and a.deadline_at %}
+      <span class="card-deadline">{{ a.deadline_at|deadline_label }}</span>
+    {% endif %}
+  </div>
+
+  <h3 class="card-title">
+    <a href="{{ ann_url(a) }}">{{ a.title_ar }}</a>
+  </h3>
+
+  <ul class="card-meta">
+    <li>{{ icon("pin", 15) }}<span>{{ a.wilaya.name_ar }}</span></li>
+    {% if a.primary_sector %}
+      <li>{{ icon("building", 15) }}<span>{{ a.primary_sector.name_ar }}</span></li>
+    {% endif %}
+    <li>{{ icon("calendar", 15) }}<span>{{ a.publish_date|date_ar }}</span></li>
+  </ul>
+
+  {% if view.unlocked %}
+    {% if view.issuer_name %}
+      <p class="card-issuer">{{ view.issuer_name }}</p>
+    {% endif %}
+    {% if view.description_ar %}
+      <p class="card-excerpt">{{ view.description_ar|truncate_words(150) }}</p>
+    {% endif %}
+  {% else %}
+    <p class="card-locked">
+      {{ icon("lock", 15) }}
+      <span>المؤسسة، الأجل والوصف الكامل متاحة للمشتركين.</span>
+    </p>
+  {% endif %}
+
+  <div class="card-footer">
+    <a class="card-link" href="{{ ann_url(a) }}">التفاصيل {{ icon("arrow-left", 15) }}</a>
+    {% if not view.unlocked %}<a class="card-upgrade" href="/tarifs">الاشتراك</a>{% endif %}
+  </div>
+</article>

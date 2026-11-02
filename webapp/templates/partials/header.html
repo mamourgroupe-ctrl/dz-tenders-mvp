@@ -1,0 +1,63 @@
+{% from "partials/icons.html" import icon %}
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/" aria-label="{{ site_name }} — الصفحة الرئيسية">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="11" fill="#0c1f33"/>
+          <path d="M11 29V17.5L20 11l9 6.5V29" stroke="#e3a21a" stroke-width="2.6" stroke-linejoin="round"/>
+          <path d="M15.5 29v-6.5h9V29" stroke="#0f8b8d" stroke-width="2.6" stroke-linejoin="round"/>
+          <circle cx="20" cy="18.5" r="2" fill="#e3a21a"/>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <strong>{{ site_name }}</strong>
+        <small>{{ site_name_fr }}</small>
+      </span>
+    </a>
+
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" data-nav-toggle>
+      <span class="sr-only">فتح القائمة</span>
+      {{ icon("menu", 22) }}
+    </button>
+
+    <nav id="primary-nav" class="primary-nav" aria-label="التنقل الرئيسي" data-nav>
+      <ul>
+        <li><a href="/" {% if current_path == "/" %}aria-current="page"{% endif %}>الرئيسية</a></li>
+        <li><a href="/annonces" {% if current_path.startswith("/annonces") %}aria-current="page"{% endif %}>المناقصات</a></li>
+        <li><a href="/archives" {% if current_path.startswith("/archives") %}aria-current="page"{% endif %}>الأرشيف</a></li>
+        <li><a href="/sous-traitance" {% if current_path.startswith("/sous-traitance") %}aria-current="page"{% endif %}>من الباطن</a></li>
+        <li><a href="/tarifs" {% if current_path == "/tarifs" %}aria-current="page"{% endif %}>الاشتراكات</a></li>
+        <li><a href="/contact" {% if current_path == "/contact" %}aria-current="page"{% endif %}>اتصل بنا</a></li>
+      </ul>
+    </nav>
+
+    <div class="header-actions">
+      <form class="header-search" action="/annonces" method="get" role="search">
+        <label class="sr-only" for="header-q">البحث في المناقصات</label>
+        <input id="header-q" type="search" name="q" placeholder="ابحث بكلمة مفتاحية…" maxlength="200" autocomplete="off">
+        <button type="submit" aria-label="بحث">{{ icon("search", 18) }}</button>
+      </form>
+
+      <button class="icon-button" type="button" data-theme-toggle aria-label="تبديل المظهر الفاتح والداكن" title="تبديل المظهر">
+        <span class="theme-icon-light">{{ icon("moon", 19) }}</span>
+        <span class="theme-icon-dark">{{ icon("sun", 19) }}</span>
+      </button>
+
+      {% if user %}
+        <div class="account-chip">
+          <span class="account-name" title="{{ user.display_name }}">{{ user.display_name }}</span>
+          {% if entitlements.is_paid %}
+            <span class="badge badge-plan">{{ entitlements.plan_name_ar }}</span>
+          {% endif %}
+          <form action="/deconnexion" method="post" class="logout-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="link-button">خروج</button>
+          </form>
+        </div>
+      {% else %}
+        <a class="button button-outline button-small" href="/connexion">دخول</a>
+      {% endif %}
+    </div>
+  </div>
+</header>

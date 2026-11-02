@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ site_name }} — {{ site_tagline }}{% endblock %}</title>
+  <meta name="description" content="{% block description %}{{ site_tagline }}{% endblock %}">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <meta name="theme-color" content="#0c1f33">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ site_name }}">
+  <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{{ self.description() }}{% endblock %}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:locale" content="ar_DZ">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{ self.title() }}">
+  <meta name="twitter:description" content="{{ self.description() }}">
+  <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/js/theme.js"></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#main">تجاوز إلى المحتوى الرئيسي</a>
+  {% include "partials/header.html" %}
+  <main id="main" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+  {% include "partials/footer.html" %}
+  <script src="/static/js/app.js" defer></script>
+</body>
+</html>

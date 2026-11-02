@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}عروض من الباطن — {{ site_name }}{% endblock %}
+{% block description %}عروض وطلبات التعاقد من الباطن في الجزائر، حسب القطاع والولاية.{% endblock %}
+
+{% block content %}
+<div class="container page">
+  <nav class="breadcrumbs" aria-label="مسار التنقل">
+    <a href="/">الرئيسية</a><span aria-hidden="true">/</span><span>من الباطن</span>
+  </nav>
+
+  <header class="page-header">
+    <div>
+      <h1>عروض التعاقد من الباطن</h1>
+      <p class="lead">
+        فرص تعاون بين المؤسسات: عروض وطلبات في الأشغال والتوريد والخدمات.
+        تُراجع العروض من طرف فريق الإدارة قبل نشرها.
+      </p>
+    </div>
+  </header>
+
+  <form class="inline-filters" method="get" action="/sous-traitance" role="search" aria-label="تصفية عروض من الباطن">
+    <div class="filter-field">
+      <label for="o-sector">القطاع</label>
+      <select id="o-sector" name="sector">
+        <option value="">كل القطاعات</option>
+        {% for sector in options.sectors %}
+          <option value="{{ sector.slug }}" {% if selected.sector == sector.slug %}selected{% endif %}>{{ sector.name_ar }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="o-wilaya">الولاية</label>
+      <select id="o-wilaya" name="wilaya">
+        <option value="">كل الولايات</option>
+        {% for wilaya in options.wilayas %}
+          <option value="{{ wilaya.code }}" {% if selected.wilaya == wilaya.code %}selected{% endif %}>{{ wilaya.code }} — {{ wilaya.name_ar }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="button button-primary" type="submit">تصفية</button>
+  </form>
+
+  {% if offers %}
+    <div class="cards-grid cards-grid-3">
+      {% for view in offers %}
+        {% set offer = view.offer %}
+        <article class="card offer-card">
+          <div class="card-top">
+            <span class="badge badge-offer">عرض من الباطن</span>
+            {% if offer.deadline %}<span class="card-deadline">إلى {{ offer.deadline|date_ar }}</span>{% endif %}
+          </div>
+          <h2 class="card-title"><a href="{{ offer_url(offer) }}">{{ offer.title }}</a></h2>
+          <ul class="card-meta">
+            <li>{{ icon("pin", 15) }}<span>{{ offer.wilaya.name_ar }}</span></li>
+            <li>{{ icon("building", 15) }}<span>{{ offer.sector.name_ar }}</span></li>
+          </ul>
+          <p class="card-excerpt">{{ offer.description|truncate_words(140) }}</p>
+          {% if view.show_contact %}
+            <p class="card-issuer">{{ offer.issuer_name }}</p>
+          {% else %}
+            <p class="card-locked">{{ icon("lock", 15) }}<span>بيانات الاتصال متاحة للمشتركين.</span></p>
+          {% endif %}
+          <div class="card-footer">
+            <a class="card-link" href="{{ offer_url(offer) }}">عرض التفاصيل {{ icon("arrow-left", 15) }}</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+    {% include "partials/pagination.html" %}
+  {% else %}
+    <div class="empty-state">
+      <h2>لا توجد عروض منشورة حالياً</h2>
+      <p>تُنشر العروض بعد مراجعتها. عد لاحقاً أو أرسل عرضك عبر صفحة الاتصال.</p>
+      <a class="button button-primary" href="/contact">اتصل بنا</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
