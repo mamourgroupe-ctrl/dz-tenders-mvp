@@ -1,23 +1,8 @@
-# قواعد المشروع (DZ-TENDERS-MVP)
+# DZ-TENDERS-MVP
 
-## اللغة والتقنيات
-- Python 3.11+، TypeScript صارم (no `any` إلا مع تعليق مبرر)
-- اتبع معايير PEP 8 للبايثون
-
-## الأمان (إلزامي)
-- لا أسرار في الكود — استخدم متغيرات البيئة فقط
-- كل مدخلات HTTP تُحقق بـ zod (للـ TypeScript) أو Pydantic (للـ Python)
-- لا تضف تبعية دون فحص Snyk أولاً
-
-## الاختبارات
-- كل PR جديد يقابله اختبار يمس السلوك الجديد
-- شغّل `pytest` قبل اعتبار المهمة منجزة
-
-## التوثيق
-- كل دالة عامة تحمل Docstring
-- حدّث README.md عند تغيير الواجهات العامة
-
-## سير العمل المحظور على الوكلاء
-- لا git push مباشر إلى main
-- لا تعديل ملفات .env أو infra/ دون موافقة صريحة
-- عند عدم اليقين: اسأل بدل التخمين
+- Python 3.11+ / TS strict (no `any` w/justification)
+- Env only for secrets. Validate inputs (Pydantic/zod). Snyk check deps.
+- PR needs test for new behavior. Run `pytest` before done.
+- Public fns need docstrings. Update README on public API changes.
+- No direct push to main. No .env/infra changes without approval.
+- Ask if uncertain.
