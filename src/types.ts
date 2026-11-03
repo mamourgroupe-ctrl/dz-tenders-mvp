@@ -8,7 +8,7 @@ export interface Tender {
   titleFr: string
   organisation: string
   organisationShort: string
-  wilaya: string
+  wilaya: string | null
   /** ISO date, or null when the stored deadline is missing/unparseable. */
   deadline: string | null
   /** Date the system first stored the tender (DB ``first_seen``). */

@@ -20,8 +20,18 @@ from storage.lock import db_lock
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-TENDER = {"title": "مناقصة توريد أنابيب PEHD", "organisation": "ADE", "link": "https://ade.dz/a"}
-OTHER = {"title": "مناقصة حية", "organisation": "ADE", "link": "https://ade.dz/b"}
+TENDER = {
+    "title": "مناقصة توريد أنابيب PEHD",
+    "organisation": "ADE",
+    "link": "https://ade.dz/a",
+    "relevance_score": 5,
+}
+OTHER = {
+    "title": "مناقصة حية",
+    "organisation": "ADE",
+    "link": "https://ade.dz/b",
+    "relevance_score": 5,
+}
 
 
 def _factory(db_path):

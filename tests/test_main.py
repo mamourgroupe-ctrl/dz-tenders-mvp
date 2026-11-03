@@ -10,7 +10,12 @@ from crawlers.marches_publics_crawler import MarchesPublicsCrawler
 from crawlers.ona_crawler import ONACrawler
 from main import apply_filter, build_notifier, build_summary_message, drop_reference_data
 
-LIVE_TENDER = {"title": "مناقصة توريد أنابيب PEHD", "link": "https://ade.dz/a"}
+LIVE_TENDER = {
+    "title": "مناقصة توريد أنابيب PEHD",
+    "organisation": "ADE",
+    "link": "https://ade.dz/a",
+    "relevance_score": 5,
+}
 
 
 class FakeStore:
@@ -165,6 +170,7 @@ def test_is_sample_flag_survives_filtering():
         {
             "title": "Acquisition de tuyaux PVC assainissement CR8 DN 200/315",
             "is_sample": True,
+            "organisation": "ADE",
         }
     ]
 

@@ -28,13 +28,14 @@ class TenderStore(TenderDatabase):
 
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT notified, blocked FROM tenders WHERE fingerprint = ? LIMIT 1",
+                "SELECT notified, blocked, is_noise FROM tenders"
+                " WHERE fingerprint = ? LIMIT 1",
                 (fingerprint,),
             ).fetchone()
 
         if row is None:
             return True
-        return not row["notified"] and not row["blocked"]
+        return not row["notified"] and not row["blocked"] and not row["is_noise"]
 
     def mark_sent(self, tender: dict) -> None:
         """Save tender and mark it as sent/notified."""
@@ -48,7 +49,9 @@ class TenderStore(TenderDatabase):
     def count(self) -> int:
         """Return total number of stored tenders."""
         with self._connect() as conn:
-            row = conn.execute("SELECT COUNT(*) AS total FROM tenders").fetchone()
+            row = conn.execute(
+                "SELECT COUNT(*) AS total FROM tenders WHERE is_noise = 0"
+            ).fetchone()
 
         return int(row["total"] if row else 0)
 

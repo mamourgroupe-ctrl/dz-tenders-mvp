@@ -69,3 +69,8 @@ storage/*.bak-*
 
 # Marches Publics session
 storage/marches_state.json
+.env.*
+!.env.example
+.ai/config.env
+
+PowerShell/

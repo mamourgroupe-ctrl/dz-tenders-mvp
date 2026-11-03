@@ -6,6 +6,7 @@ storage/tools.py
     python -m storage.tools unblock --all
     python -m storage.tools unblock --fp <fingerprint>
     python -m storage.tools blocked
+    python -m storage.tools clean-noise [--dry-run]
 """
 
 import argparse
@@ -39,6 +40,16 @@ def _build_parser() -> argparse.ArgumentParser:
 
     blocked = sub.add_parser("blocked", help="عرض الصفقات المحجوبة")
     blocked.add_argument("--limit", type=int, default=50, help="أقصى عدد صفوف تُعرض")
+
+    clean_noise = sub.add_parser(
+        "clean-noise",
+        help="وسم السجلات التي لا تستوفي أدلة المناقصة كضوضاء دون حذفها",
+    )
+    clean_noise.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="عرض عدد السجلات المرشحة دون تغيير قاعدة البيانات",
+    )
     return parser
 
 
@@ -127,6 +138,15 @@ def main(argv: list[str] | None = None) -> int:
 
             if args.command == "unblock":
                 return _run_unblock(store, args)
+            if args.command == "clean-noise":
+                count = (
+                    store.count_invalid_tenders()
+                    if args.dry_run
+                    else store.mark_invalid_tenders_as_noise()
+                )
+                action = "مرشحة للوسم" if args.dry_run else "وُسمت كضوضاء"
+                print(f"{count} سجل(ات) {action} — لم يُحذف أي سجل نهائياً")
+                return 0
             return _run_blocked(store, args)
     except DbLockTimeout as exc:
         print(f"🔒 {exc}", file=sys.stderr)

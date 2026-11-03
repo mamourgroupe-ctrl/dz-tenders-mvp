@@ -1,4 +1,9 @@
-"""
+""(
+    tender.get("organisation")
+    or tender.get("contracting_authority")
+    or tender.get("organization")
+    or ""
+),"
 storage/database.py
 قاعدة بيانات SQLite لتتبع المناقصات ومنع التكرار
 """
@@ -8,6 +13,8 @@ import logging
 import os
 import sqlite3
 from datetime import datetime
+
+from storage.tender_quality import is_valid_tender
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +33,9 @@ MIGRATION_COLUMNS = (
     "ALTER TABLE tenders ADD COLUMN blocked INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE tenders ADD COLUMN last_error TEXT",
     "ALTER TABLE tenders ADD COLUMN last_attempt_at TEXT",
+    "ALTER TABLE tenders ADD COLUMN reference TEXT",
+    "ALTER TABLE tenders ADD COLUMN source TEXT",
+    "ALTER TABLE tenders ADD COLUMN is_noise INTEGER NOT NULL DEFAULT 0",
 )
 
 #: أسماء الأعمدة التي ينشئها الترحيل، بالترتيب نفسه.
@@ -71,7 +81,10 @@ class TenderDatabase:
                     retry_count INTEGER NOT NULL DEFAULT 0,
                     blocked INTEGER NOT NULL DEFAULT 0,
                     last_error TEXT,
-                    last_attempt_at TEXT
+                    last_attempt_at TEXT,
+                    reference TEXT,
+                    source TEXT,
+                    is_noise INTEGER NOT NULL DEFAULT 0
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_fingerprint ON tenders(fingerprint);
@@ -90,7 +103,7 @@ class TenderDatabase:
     def _migrate_schema(self, conn):
         """ترحيل قواعد قديمة إلى المخطط الحالي (idempotent).
 
-        يضيف ``retry_count`` و``blocked`` و``last_error`` و``last_attempt_at``
+        يضيف أعمدة التسليم وجودة البيانات
         بأمان على أي قاعدة أُنشئت قبل هذا الإصدار، ولا يفعل شيئاً إن كانت
         الأعمدة موجودة. SQLite لا يدعم ``ADD COLUMN IF NOT EXISTS``، لذا يُقرأ
         المخطط أولاً ويُنفَّذ ``ALTER TABLE`` فقط للأعمدة الناقصة.
@@ -174,7 +187,9 @@ class TenderDatabase:
         return ",".join(ids)
 
     def add_tender(self, tender: dict) -> bool:
-        """إضافة مناقصة. Returns True إذا كانت جديدة، False إذا مكررة."""
+        """Store a tender only when it meets the minimum quality requirements."""
+        if not is_valid_tender(tender):
+            return False
         fp = self._fingerprint(tender)
         now = datetime.now().isoformat()
 
@@ -198,26 +213,58 @@ class TenderDatabase:
                 INSERT INTO tenders (
                     fingerprint, title, organisation, wilaya, product,
                     deadline, status, link, relevance_score,
-                    matched_families, first_seen, last_seen, notified
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                    matched_families, first_seen, last_seen, notified,
+                    reference, source
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
                 """,
                 (
                     fp,
                     tender.get("title", ""),
                     tender.get("organisation", ""),
-                    tender.get("wilaya", ""),
+                    tender.get("wilaya") or None,
                     tender.get("product", ""),
-                    tender.get("deadline", ""),
+                    tender.get("deadline") or None,
                     tender.get("status", ""),
                     tender.get("link", ""),
                     tender.get("relevance_score", 0),
                     families_str,
                     now,
                     now,
+                    tender.get("reference") or tender.get("tender_number"),
+                    tender.get("source"),
                 ),
             )
             conn.commit()
             return True
+
+    def mark_invalid_tenders_as_noise(self) -> int:
+        """Soft-delete rows that fail the shared tender-quality check."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, deadline, reference, organisation, relevance_score, source, link"
+                " FROM tenders WHERE is_noise = 0"
+            ).fetchall()
+            invalid_ids = [row["id"] for row in rows if not is_valid_tender(dict(row))]
+            if not invalid_ids:
+                return 0
+            conn.executemany(
+                "UPDATE tenders SET is_noise = 1 WHERE id = ?",
+                ((row_id,) for row_id in invalid_ids),
+            )
+            return len(invalid_ids)
+
+    def count_invalid_tenders(self) -> int:
+        """Count active rows failing minimum tender-quality requirements."""
+        return len(self._invalid_tender_ids())
+
+    def _invalid_tender_ids(self) -> list[int]:
+        """Return active row IDs that fail the shared quality check."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, deadline, reference, organisation, relevance_score, source, link"
+                " FROM tenders WHERE is_noise = 0"
+            ).fetchall()
+        return [row["id"] for row in rows if not is_valid_tender(dict(row))]
 
     def mark_notified(self, tender: dict):
         """تحديد المناقصة كـ 'تم إشعارها'"""
@@ -320,7 +367,8 @@ class TenderDatabase:
             rows = conn.execute(
                 """
                 SELECT fingerprint, title, retry_count, last_error, last_attempt_at
-                FROM tenders WHERE blocked = 1 ORDER BY last_attempt_at DESC LIMIT ?
+                FROM tenders WHERE blocked = 1 AND is_noise = 0
+                ORDER BY last_attempt_at DESC LIMIT ?
                 """,
                 (limit,),
             ).fetchall()
@@ -333,19 +381,23 @@ class TenderDatabase:
     def stats(self) -> dict:
         """إحصائيات سريعة"""
         with self._connect() as conn:
-            total = conn.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
-            notified = conn.execute("SELECT COUNT(*) FROM tenders WHERE notified = 1").fetchone()[0]
+            total = conn.execute(
+                "SELECT COUNT(*) FROM tenders WHERE is_noise = 0"
+            ).fetchone()[0]
+            notified = conn.execute(
+                "SELECT COUNT(*) FROM tenders WHERE notified = 1 AND is_noise = 0"
+            ).fetchone()[0]
 
             today = datetime.now().strftime("%Y-%m-%d")
             today_count = conn.execute(
-                "SELECT COUNT(*) FROM tenders WHERE first_seen LIKE ?",
+                "SELECT COUNT(*) FROM tenders WHERE first_seen LIKE ? AND is_noise = 0",
                 (f"{today}%",),
             ).fetchone()[0]
 
             by_wilaya = conn.execute(
                 """
                 SELECT wilaya, COUNT(*) as count FROM tenders
-                WHERE wilaya IS NOT NULL AND wilaya != ''
+                WHERE wilaya IS NOT NULL AND wilaya != '' AND is_noise = 0
                 GROUP BY wilaya ORDER BY count DESC LIMIT 10
                 """
             ).fetchall()

@@ -129,7 +129,9 @@ function deriveTimeline(tenders: Tender[]): TimelinePoint[] {
 
 function deriveByWilaya(tenders: Tender[]): WilayaPoint[] {
   const counts = new Map<string, number>()
-  tenders.forEach((tender) => counts.set(tender.wilaya, (counts.get(tender.wilaya) ?? 0) + 1))
+  tenders.forEach((tender) => {
+    if (tender.wilaya) counts.set(tender.wilaya, (counts.get(tender.wilaya) ?? 0) + 1)
+  })
   return [...counts.entries()]
     .map(([wilaya, count]) => ({ wilaya, count, percentage: Math.round((count / tenders.length) * 100) }))
     .sort((a, b) => b.count - a.count)

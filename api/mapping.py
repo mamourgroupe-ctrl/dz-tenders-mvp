@@ -118,7 +118,7 @@ def row_to_tender(row: dict, today: date) -> TenderOut:
         titleFr="" if is_arabic else title,
         organisation=organisation,
         organisationShort=organisation,
-        wilaya=str(row.get("wilaya") or ""),
+        wilaya=str(row["wilaya"]) if row.get("wilaya") else None,
         deadline=deadline.isoformat() if deadline else None,
         publicationDate=first_seen.isoformat() if first_seen else "",
         products=products_from_text(row.get("product")),
@@ -126,10 +126,10 @@ def row_to_tender(row: dict, today: date) -> TenderOut:
         priority=priority_for_score(max(0, score)),  # type: ignore[arg-type]
         status=derive_status(row.get("status"), deadline, today),  # type: ignore[arg-type]
         description=None,
-        source=None,
+        source=str(row["source"]) if row.get("source") else None,
         sourceUrl=link if link.startswith(("http://", "https://")) else None,
         latitude=None,
         longitude=None,
-        reference=None,
+        reference=str(row["reference"]) if row.get("reference") else None,
         estimatedValue=None,
     )

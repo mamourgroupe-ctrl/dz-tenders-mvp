@@ -10,6 +10,35 @@
     "snyk-security.snyk-vulnerability-scanner",
     "Semgrep.semgrep",
     "Upstash.context7-mcp",
-    "kilocode.Kilo-Code"
+    "kilocode.Kilo-Code",
+    "usernamehw.errorlens",
+    "streetsidesoftware.code-spell-checker",
+    "PKief.material-icon-theme",
+    "GitHub.vscode-pull-request-github",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "yoavbls.pretty-ts-errors",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "charliermarsh.ruff",
+    "eamodio.gitlens",
+    "editorconfig.editorconfig",
+    "dsznajder.es7-react-js-snippets",
+    "dotenv.dotenv-vscode",
+    "ms-vscode-remote.remote-wsl"
+  ],
+  "unwantedRecommendations": [
+    "ms-azuretools.vscode-docker",
+    "formulahendry.auto-rename-tag",
+    "formulahendry.auto-close-tag",
+    "CoenraadS.bracket-pair-colorizer-2",
+    "wix.vscode-import-cost",
+    "mhutchie.git-graph",
+    "mikestead.dotenv",
+    "ms-python.black-formatter",
+    "ms-python.flake8",
+    "ms-python.isort",
+    "ms-python.pylint"
   ]
 }

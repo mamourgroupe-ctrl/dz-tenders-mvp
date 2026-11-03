@@ -95,7 +95,7 @@ class AlgeriaTendersCrawler(BaseCrawler):
                     {
                         "title": text,
                         "organisation": "القطاع العمومي / الموارد المائية",
-                        "wilaya": "الجزائر",
+                        "wilaya": None,
                         "product": "أنابيب / خزانات بلاستيكية",
                         "deadline": "مفتوحة حالياً",
                         "status": "مفتوحة",

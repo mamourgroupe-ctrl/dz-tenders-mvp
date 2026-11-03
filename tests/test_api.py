@@ -163,6 +163,7 @@ def test_list_tenders_envelope_and_mapping(client):
     assert first["status"] == "closing_soon"  # deadline 7 days after TODAY
     assert first["publicationDate"] == "2026-10-12"
     assert first["sourceUrl"] == "https://example.dz/1"
+    assert first["wilaya"] == "الجزائر"
     # Never fabricated from data the DB does not store.
     assert first["latitude"] is None and first["longitude"] is None
     assert first["estimatedValue"] is None and first["reference"] is None
@@ -376,3 +377,59 @@ def test_row_to_tender_handles_missing_fields():
     assert tender.deadline is None and tender.publicationDate == ""
     assert tender.products == [] and tender.score == 0 and tender.priority == 3
     assert tender.sourceUrl is None
+    assert tender.wilaya is None
+
+
+def test_api_excludes_soft_marked_noise(tmp_path):
+    db = _make_db(tmp_path / "noise.db")
+    conn = sqlite3.connect(db)
+    conn.execute("UPDATE tenders SET is_noise = 1 WHERE id = 1")
+    conn.commit()
+    conn.close()
+    client = TestClient(create_app(db_path=db, today_provider=lambda: TODAY))
+
+    response = client.get("/api/tenders")
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 3
+    assert all(item["id"] != "1" for item in response.json()["items"])
+    assert client.get("/api/tenders/1").status_code == 404
+    assert client.get("/api/stats/summary").json()["total"] == 3
+
+
+def test_api_hides_legacy_google_news_rss_rows(tmp_path):
+    db = _make_db(tmp_path / "legacy-news.db")
+    conn = sqlite3.connect(db)
+    conn.execute(
+        "INSERT INTO tenders (fingerprint, title, organisation, wilaya, link,"
+        " relevance_score, first_seen, last_seen)"
+        " VALUES ('news-fp', 'Tender news', 'Reuters', 'الجزائر',"
+        " 'https://news.google.com/rss/articles/example', 8, '2026-10-12', '2026-10-12')"
+    )
+    conn.commit()
+    conn.close()
+    client = TestClient(create_app(db_path=db, today_provider=lambda: TODAY))
+
+    response = client.get("/api/tenders")
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 4
+    assert all(item["titleAr"] != "Tender news" for item in response.json()["items"])
+
+
+def test_api_returns_saved_reference_and_source(tmp_path):
+    db = _make_db(tmp_path / "metadata.db")
+    conn = sqlite3.connect(db)
+    conn.execute(
+        "UPDATE tenders SET reference = ?, source = ? WHERE id = 1",
+        ("ADE/2026/4", "ade.gov.dz"),
+    )
+    conn.commit()
+    conn.close()
+    client = TestClient(create_app(db_path=db, today_provider=lambda: TODAY))
+
+    response = client.get("/api/tenders/1")
+
+    assert response.status_code == 200
+    assert response.json()["reference"] == "ADE/2026/4"
+    assert response.json()["source"] == "ade.gov.dz"

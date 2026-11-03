@@ -36,7 +36,7 @@ class MarchesPublicsCrawler(BaseCrawler):
             {
                 "title": "Fourniture de conduites PEHD pour adduction d'eau potable",
                 "organisation": "وزارة الموارد المائية",
-                "wilaya": "الجزائر",
+                "wilaya": None,
                 "product": "PEHD Pipes",
                 "deadline": "2026-10-30",
                 "status": "مفتوحة",
