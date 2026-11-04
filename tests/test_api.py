@@ -351,6 +351,46 @@ def test_cors_allows_configured_origin_without_credentials(tmp_path):
     assert "access-control-allow-origin" not in denied.headers
 
 
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://dz-tenders.vercel.app",
+        "https://dz-tenders-git-preview-user.vercel.app",
+        "https://dz-tenders-production.up.railway.app",
+    ],
+)
+def test_cors_allows_deployment_origins_without_credentials(tmp_path, origin):
+    """Vercel and Railway deployment hosts are allowed without credentials."""
+    db = _make_db(tmp_path / "deployment-cors.db", rows=[])
+    app = create_app(db_path=db, today_provider=lambda: TODAY)
+    cors_client = TestClient(app, raise_server_exceptions=False)
+
+    response = cors_client.get("/api/tenders", headers={"Origin": origin})
+
+    assert response.headers["access-control-allow-origin"] == origin
+    assert "access-control-allow-credentials" not in response.headers
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://vercel.app",
+        "https://vercel.app.attacker.example",
+        "http://dz-tenders.vercel.app",
+        "https://dz-tenders.railway.app",
+    ],
+)
+def test_cors_rejects_non_deployment_origins(tmp_path, origin):
+    """Deployment CORS patterns do not accept lookalike or insecure origins."""
+    db = _make_db(tmp_path / "rejected-cors.db", rows=[])
+    app = create_app(db_path=db, today_provider=lambda: TODAY)
+    cors_client = TestClient(app, raise_server_exceptions=False)
+
+    response = cors_client.get("/api/tenders", headers={"Origin": origin})
+
+    assert "access-control-allow-origin" not in response.headers
+
+
 # ── Pure mapping helpers ────────────────────────────────────────────────────
 
 
