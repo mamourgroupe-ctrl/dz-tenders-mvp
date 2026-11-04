@@ -17,7 +17,21 @@ DZ-TENDERS-MVP is a Python project that:
 - Weighted scoring classification
 - Support for 8 marketing families
 - Telegram notifications with Excel attachment
+- Tender evidence validation, with Google News articles excluded by default
+- Soft-noise marking for legacy rows that fail tender validation
 - Secure secrets storage with `.env` + `.gitignore`
+
+## BAOSEM and BOMOP crawlers
+
+Run either public-site crawler from the repository root:
+
+```bash
+python -m crawlers.baosem --dry-run
+python -m crawlers.bomop --dry-run
+```
+
+`--dry-run` prints parsed tender records as JSON without writing to SQLite.
+Omit it to save accepted records through the existing tender database.
 
 ## Tech Stack
 
@@ -65,6 +79,7 @@ Environment variables (see `.env.example`, empty placeholders only):
 | `DB_PATH` | `storage/tenders.db` (repo-root relative) | SQLite file opened read-only (`mode=ro`) |
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated allowed origins; credentials are never enabled |
 | `PORT` | `8000` locally | Hosting port used by the `Procfile` command |
+| `ALLOW_NEWS_AS_TENDERS` | `false` | Explicit opt-in to admitting Google News articles to tender collection |
 
 Endpoints (all `GET`, public-read, unauthenticated — only tender
 listings collected for publication are exposed):
@@ -89,10 +104,24 @@ heading); `publicationDate` is the stored `first_seen` date;
 `score = relevance_score`; `priority` reuses the project thresholds
 (>=85 → 1, >=70 → 2, else 3); `status` derives from the real `deadline`;
 `products` are recognized from the crawler free-text `product` column.
-Coordinates, estimated value, official reference, description and
-source name are **not stored**, so the API returns `null` for them and
-the dashboard renders explicit "not available" states — they are never
-fabricated.
+Coordinates, estimated value and description are not stored, so the API
+returns `null` for them. Tender references and collection source markers are
+stored when available; they are never fabricated.
+
+Collection stores only records with a valid deadline, a tender reference, or
+a contracting authority, and a relevance score of at least 3. Unknown wilayas
+remain `NULL`. Google News is disabled in the standard scraper configuration;
+`ALLOW_NEWS_AS_TENDERS=true` is an explicit opt-in and does not bypass evidence
+validation.
+
+Legacy rows can be reviewed and soft-marked without permanent deletion:
+
+```bash
+python -m storage.tools clean-noise --dry-run
+python -m storage.tools clean-noise
+```
+
+The API and dashboard counts exclude rows marked with `is_noise=1`.
 
 #### Frontend setup
 

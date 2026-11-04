@@ -18,7 +18,7 @@ class TenderOut(BaseModel):
     """One tender serialized from a SQLite ``tenders`` row.
 
     Fields the database does not store (``latitude``, ``longitude``,
-    ``estimatedValue``, ``reference``, ``description``, ``source``) are
+    ``estimatedValue``, ``description``) are
     explicitly nullable instead of being fabricated by the API.
     """
 
@@ -27,7 +27,7 @@ class TenderOut(BaseModel):
     titleFr: str
     organisation: str
     organisationShort: str
-    wilaya: str
+    wilaya: str | None
     deadline: str | None
     publicationDate: str
     products: list[ProductCode]

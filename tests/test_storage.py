@@ -94,6 +94,74 @@ def test_add_tender_keeps_valid_family_ids(tmp_path):
     assert row["matched_families"] == "fam1"
 
 
+def test_add_tender_requires_relevance_and_tender_evidence(tmp_path):
+    """Noise and low-relevance records are not inserted."""
+    store = TenderStore(db_path=str(tmp_path / "quality.db"))
+    no_evidence = {**TENDER, "organisation": None}
+    below_threshold = {**TENDER, "relevance_score": 2}
+
+    assert store.add_tender(no_evidence) is False
+    assert store.add_tender(below_threshold) is False
+    assert store.count() == 0
+
+
+def test_add_tender_keeps_missing_wilaya_null_and_saves_reference(tmp_path):
+    """Unknown locations stay NULL and a real tender reference is retained."""
+    store = TenderStore(db_path=str(tmp_path / "reference.db"))
+    tender = {**TENDER, "wilaya": "", "organisation": None, "reference": "ADE/2026/4"}
+
+    assert store.add_tender(tender) is True
+    row = _row(store.db_path, store._fingerprint(tender))
+    assert row["wilaya"] is None
+    assert row["reference"] == "ADE/2026/4"
+
+
+def test_mark_invalid_tenders_as_noise_is_reversible_and_counted(tmp_path):
+    """The cleanup command only marks rows; it never removes them."""
+    store = TenderStore(db_path=str(tmp_path / "noise.db"))
+    valid = {**TENDER, "title": "Tender valid"}
+    invalid = {**TENDER, "title": "Tender invalid", "organisation": None}
+    store.add_tender(valid)
+    store.add_tender(invalid)  # validation prevents new bad rows
+
+    # Simulate legacy data predating the insertion check.
+    with store._connect() as conn:
+        conn.execute(
+            "INSERT INTO tenders (fingerprint, title, first_seen, last_seen, relevance_score)"
+            " VALUES ('legacy-noise', 'Legacy news', '2026-10-01', '2026-10-01', 2)"
+        )
+        conn.execute(
+            "INSERT INTO tenders (fingerprint, title, organisation, link, relevance_score,"
+            " first_seen, last_seen)"
+            " VALUES ('legacy-rss', 'Legacy RSS', 'Reuters',"
+            " 'https://news.google.com/rss/articles/example', 8, '2026-10-01', '2026-10-01')"
+        )
+    assert store.count_invalid_tenders() == 2
+    assert store.mark_invalid_tenders_as_noise() == 2
+    assert store.count() == 1
+    assert _row(store.db_path, "legacy-noise")["is_noise"] == 1
+    assert _row(store.db_path, "legacy-rss")["is_noise"] == 1
+
+
+def test_clean_noise_cli_supports_dry_run(tmp_path, capsys):
+    """The admin command previews candidates without changing them."""
+    from storage.tools import main as tools_main
+
+    store = TenderStore(db_path=str(tmp_path / "clean-cli.db"))
+    with store._connect() as conn:
+        conn.execute(
+            "INSERT INTO tenders (fingerprint, title, first_seen, last_seen, relevance_score)"
+            " VALUES ('legacy-noise', 'Legacy news', '2026-10-01', '2026-10-01', 1)"
+        )
+
+    assert tools_main(["--db", store.db_path, "clean-noise", "--dry-run"]) == 0
+
+    assert "1 سجل" in capsys.readouterr().out
+    assert _row(store.db_path, "legacy-noise")["is_noise"] == 0
+    assert tools_main(["--db", store.db_path, "clean-noise"]) == 0
+    assert _row(store.db_path, "legacy-noise")["is_noise"] == 1
+
+
 # ── نقطة 6أ/6ب: المخطط والترحيل ────────────────────────────────────────────
 
 

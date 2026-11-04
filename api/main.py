@@ -41,6 +41,10 @@ from storage.paths import resolve_db_path
 logger = logging.getLogger(__name__)
 
 DEFAULT_CORS_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
+DEPLOYMENT_ORIGIN_REGEX = (
+    r"^https://[a-zA-Z0-9-]+\.vercel\.app$"
+    r"|^https://[a-zA-Z0-9-]+\.up\.railway\.app$"
+)
 
 
 class ApiError(Exception):
@@ -90,6 +94,7 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_origin_regex=DEPLOYMENT_ORIGIN_REGEX,
         allow_credentials=False,
         allow_methods=["GET", "OPTIONS"],
         allow_headers=["Accept", "Content-Type"],

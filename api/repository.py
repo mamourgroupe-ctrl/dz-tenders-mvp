@@ -89,8 +89,33 @@ class ReadOnlyTenderRepository:
     def count_tenders(self) -> int:
         """Return the total number of stored tenders."""
         with self._connect() as conn:
-            row = conn.execute("SELECT COUNT(*) AS n FROM tenders").fetchone()
+            predicate = self._active_predicate(conn)
+            where = f" WHERE {predicate}" if predicate else ""
+            row = conn.execute(f"SELECT COUNT(*) AS n FROM tenders{where}").fetchone()
         return int(row["n"])
+
+    @staticmethod
+    def _active_predicate(conn: sqlite3.Connection) -> str:
+        """Exclude soft-deleted rows and Google News articles when identifiable."""
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(tenders)")}
+        predicates = []
+        if "is_noise" in columns:
+            predicates.append("is_noise = 0")
+        if "source" in columns:
+            predicates.append("COALESCE(source, '') != 'news_aggregator'")
+        if "link" in columns:
+            predicates.append(
+                "(LOWER(COALESCE(link, '')) NOT LIKE 'https://news.google.com/%'"
+                " AND LOWER(COALESCE(link, '')) NOT LIKE 'http://news.google.com/%')"
+            )
+        return " AND ".join(predicates)
+
+    @staticmethod
+    def _select_columns(conn: sqlite3.Connection) -> str:
+        """Select newer optional metadata columns when the database has them."""
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(tenders)")}
+        optional = [name for name in ("reference", "source") if name in columns]
+        return SELECT_COLUMNS + "".join(f", {name}" for name in optional)
 
     @staticmethod
     def _where(filters: TenderFilters) -> tuple[str, list[object]]:
@@ -131,11 +156,14 @@ class ReadOnlyTenderRepository:
         page_size = min(100, max(1, filters.page_size))
         where, params = self._where(filters)
         with self._connect() as conn:
+            predicate = self._active_predicate(conn)
+            if predicate:
+                where += (" AND " if where else " WHERE ") + f"({predicate})"
             total = int(
                 conn.execute(f"SELECT COUNT(*) AS n FROM tenders{where}", params).fetchone()["n"]
             )
             rows = conn.execute(
-                f"SELECT {SELECT_COLUMNS} FROM tenders{where}"
+                f"SELECT {self._select_columns(conn)} FROM tenders{where}"
                 " ORDER BY first_seen DESC, id DESC LIMIT ? OFFSET ?",
                 [*params, page_size, (page - 1) * page_size],
             ).fetchall()
@@ -144,14 +172,20 @@ class ReadOnlyTenderRepository:
     def get_tender(self, tender_id: int) -> dict | None:
         """Return one raw row by numeric id, or ``None`` when unknown."""
         with self._connect() as conn:
+            predicate = self._active_predicate(conn)
+            active_filter = f" AND ({predicate})" if predicate else ""
             row = conn.execute(
-                f"SELECT {SELECT_COLUMNS} FROM tenders WHERE id = ?", (tender_id,)
+                f"SELECT {self._select_columns(conn)} FROM tenders WHERE id = ?"
+                f"{active_filter}",
+                (tender_id,),
             ).fetchone()
         return dict(row) if row else None
 
     def _all_rows(self, columns: str) -> list[dict]:
         with self._connect() as conn:
-            rows = conn.execute(f"SELECT {columns} FROM tenders").fetchall()
+            predicate = self._active_predicate(conn)
+            where = f" WHERE {predicate}" if predicate else ""
+            rows = conn.execute(f"SELECT {columns} FROM tenders{where}").fetchall()
         return [dict(row) for row in rows]
 
     def summary(self, today: date) -> dict:
@@ -188,10 +222,16 @@ class ReadOnlyTenderRepository:
     def by_wilaya(self) -> list[dict]:
         """Count tenders per non-empty wilaya with integer percentages."""
         with self._connect() as conn:
-            total = int(conn.execute("SELECT COUNT(*) AS n FROM tenders").fetchone()["n"])
+            predicate = self._active_predicate(conn)
+            where = f" WHERE {predicate}" if predicate else ""
+            total = int(
+                conn.execute(f"SELECT COUNT(*) AS n FROM tenders{where}").fetchone()["n"]
+            )
+            conditions = [predicate] if predicate else []
+            conditions.append("wilaya IS NOT NULL AND wilaya != ''")
             rows = conn.execute(
                 "SELECT wilaya, COUNT(*) AS n FROM tenders"
-                " WHERE wilaya IS NOT NULL AND wilaya != ''"
+                f" WHERE {' AND '.join(conditions)}"
                 " GROUP BY wilaya ORDER BY n DESC, wilaya ASC"
             ).fetchall()
         return [
@@ -215,9 +255,12 @@ class ReadOnlyTenderRepository:
         """Daily first-seen counts for the last ``days`` days, zeros included."""
         start = today - timedelta(days=days - 1)
         with self._connect() as conn:
+            predicate = self._active_predicate(conn)
+            conditions = [predicate] if predicate else []
+            conditions.append("substr(first_seen, 1, 10) >= ?")
             rows = conn.execute(
                 "SELECT substr(first_seen, 1, 10) AS day, COUNT(*) AS n FROM tenders"
-                " WHERE substr(first_seen, 1, 10) >= ? GROUP BY day",
+                f" WHERE {' AND '.join(conditions)} GROUP BY day",
                 (start.isoformat(),),
             ).fetchall()
         counts = {row["day"]: int(row["n"]) for row in rows}

@@ -137,7 +137,7 @@ class ADECrawler(BaseCrawler):
                     "title": title,
                     "link": link,
                     "organisation": ADE_ORGANISATION,
-                    "wilaya": "",
+                    "wilaya": None,
                     "product": UNKNOWN_VALUE,
                     "deadline": UNKNOWN_VALUE,
                     "status": UNKNOWN_VALUE,

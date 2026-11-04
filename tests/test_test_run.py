@@ -11,6 +11,7 @@ TENDER = {
     "title": "مناقصة توريد أنابيب PEHD",
     "link": "https://ade.dz/a",
     "organisation": "ADE",
+    "relevance_score": 5,
 }
 
 

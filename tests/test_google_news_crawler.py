@@ -35,10 +35,12 @@ def test_title_strips_source_suffix(crawler):
 
 
 def test_source_extracted(crawler):
-    """Source extracted from <source>."""
+    """Publisher comes from <source> and is not misrepresented as a contractor."""
     xml = _load("google_news_sample.xml")
     tenders = crawler.parse_feed(xml)
-    assert all(t["organisation"] for t in tenders)
+    assert all(t["publisher"] for t in tenders)
+    assert all(t["organisation"] is None for t in tenders)
+    assert all(t["wilaya"] is None for t in tenders)
 
 
 def test_published_date_extracted(crawler):
@@ -89,6 +91,15 @@ def test_source_constant(crawler):
     tenders = crawler.parse_feed(xml)
     for t in tenders:
         assert t["source"] == "news_aggregator"
+
+
+def test_news_articles_are_rejected_by_default(crawler):
+    """RSS news is not eligible for tender storage by default."""
+    from storage.tender_quality import is_valid_tender
+
+    item = crawler.parse_feed(_load("google_news_sample.xml"))[0]
+
+    assert is_valid_tender({**item, "relevance_score": 8}) is False
 
 
 def test_run_deduplicates(crawler, monkeypatch):
