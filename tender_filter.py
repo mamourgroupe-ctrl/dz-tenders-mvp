@@ -7,6 +7,8 @@ from collections import Counter
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, timedelta
 
+from storage.tender_quality import MIN_TENDER_RELEVANCE_SCORE, is_valid_tender
+
 logger = logging.getLogger(__name__)
 
 TARGETS_FILE = os.path.join(os.path.dirname(__file__), "data", "targets.json")
@@ -51,7 +53,7 @@ class TenderFilter:
     WEIGHT_ENTITY = 4
     WEIGHT_KEYWORD = 2
     WEIGHT_PRODUCT = 3
-    MIN_SCORE_THRESHOLD = 3
+    MIN_SCORE_THRESHOLD = MIN_TENDER_RELEVANCE_SCORE
 
     #: سبب الاستبعاد: آخر أجل للتسليم مضى.
     REASON_DEADLINE_PASSED = "deadline_passed"
@@ -510,10 +512,15 @@ class TenderFilter:
         rejection_reasons: Counter[str] = Counter()
         for tender in fresh:
             classified = self.classify_tender(tender)
-            if classified:
+            if classified and is_valid_tender(classified):
                 results.append(classified)
             else:
-                rejection_reasons[self._last_classification_reason] += 1
+                reason = (
+                    self._last_classification_reason
+                    if classified is None
+                    else "insufficient_tender_evidence"
+                )
+                rejection_reasons[reason] += 1
         results.sort(key=lambda x: x["relevance_score"], reverse=True)
         self.last_filter_diagnostics = {
             "input": len(tenders),

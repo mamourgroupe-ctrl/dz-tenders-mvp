@@ -21,6 +21,18 @@ DZ-TENDERS-MVP is a Python project that:
 - Soft-noise marking for legacy rows that fail tender validation
 - Secure secrets storage with `.env` + `.gitignore`
 
+## BAOSEM and BOMOP crawlers
+
+Run either public-site crawler from the repository root:
+
+```bash
+python -m crawlers.baosem --dry-run
+python -m crawlers.bomop --dry-run
+```
+
+`--dry-run` prints parsed tender records as JSON without writing to SQLite.
+Omit it to save accepted records through the existing tender database.
+
 ## Tech Stack
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
