@@ -12,11 +12,12 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from storage.database import TenderDatabase  # noqa: E402
+from storage.paths import resolve_db_path  # noqa: E402
 
 
-def main():
+def main() -> int:
     """Create/initialize database and insert 41 demo tenders."""
-    db = TenderDatabase()
+    db = TenderDatabase(db_path=resolve_db_path())
     wilayas = [
         "أدرار",
         "الشلف",
