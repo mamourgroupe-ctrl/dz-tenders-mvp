@@ -1,5 +1,7 @@
-# Secrets
+# Environment files
 .env
+.env.*
+!.env.example
 
 # Python virtual environments
 venv/
@@ -27,6 +29,8 @@ storage/*.sqlite
 *.db-shm
 *.db.lock
 *.lock
+!uv.lock
+!poetry.lock
 
 # Exports / generated files
 exports/
@@ -47,6 +51,11 @@ Thumbs.db
 
 # Local AI assistant config
 .kilo/
+.playwright-mcp/
+.claude/settings.local.json
+
+# Local clone, not part of this project
+/PowerShell/
 
 # Generated tender result files
 tenders_results.json
@@ -57,9 +66,7 @@ tenders_results.xlsx
 # Local crawler auth/session data
 storage/auth/
 storage/auth.backup.*
-
-# Diagnostic scripts
-check_dbs.py
+crawlers/mounakassat_progress.json
 
 # Diagnostic scripts
 check_dbs.py
