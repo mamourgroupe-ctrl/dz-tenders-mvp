@@ -32,6 +32,7 @@
 
 - The agent that writes a change does not approve it; changes go through a pull request and CI.
 - Never write literal keys or tokens in `.mcp.json` or `.vscode/mcp.json`; use `${input:...}` or environment variables.
+- Telegram bot token (exposed in commit 61fd2d7) was rotated. Old token verified 401 (revoked). New token exists only in Railway and local .env. Never commit .backup files.
 
 ## 5. أدوار الوكلاء والتنسيق (Agent Roles & Coordination)
 نحن نعمل كفريق. لا تعمل بمعزل عن الآخرين.
