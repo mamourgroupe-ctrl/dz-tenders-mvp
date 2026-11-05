@@ -25,6 +25,7 @@
 ## Verification before completion
 
 - Run `ruff check .` and `python -m pytest`. If frontend files changed, run the frontend lint/build as defined in `.github/workflows`.
+- Format with Black (line-length=88) and lint with Ruff (line-length=100). Do not run `ruff format` on the project.
 - State what was changed and what was verified in the PR description.
 
 ## Review and secrets
