@@ -1,10 +1,11 @@
 """marches_login.py — Save authenticated session for marches-publics.gov.dz."""
 
+import os
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-STORAGE = Path("storage/marches_state.json")
+STORAGE = Path(os.getenv("MARCHES_STATE_PATH", "storage/marches_state.json"))
 STORAGE.parent.mkdir(parents=True, exist_ok=True)
 
 SITE_URL = "https://marches-publics.gov.dz/"
