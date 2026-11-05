@@ -1,23 +1,4 @@
-# قواعد المشروع (DZ-TENDERS-MVP)
+# GitHub Copilot Instructions
 
-## اللغة والتقنيات
-- Python 3.11+، TypeScript صارم (no `any` إلا مع تعليق مبرر)
-- اتبع معايير PEP 8 للبايثون
+Follow `AGENTS.md` for all project-wide rules, agent roles, and security constraints.
 
-## الأمان (إلزامي)
-- لا أسرار في الكود — استخدم متغيرات البيئة فقط
-- كل مدخلات HTTP تُحقق بـ zod (للـ TypeScript) أو Pydantic (للـ Python)
-- لا تضف تبعية دون فحص Snyk أولاً
-
-## الاختبارات
-- كل PR جديد يقابله اختبار يمس السلوك الجديد
-- شغّل `pytest` قبل اعتبار المهمة منجزة
-
-## التوثيق
-- كل دالة عامة تحمل Docstring
-- حدّث README.md عند تغيير الواجهات العامة
-
-## سير العمل المحظور على الوكلاء
-- لا git push مباشر إلى main
-- لا تعديل ملفات .env أو infra/ دون موافقة صريحة
-- عند عدم اليقين: اسأل بدل التخمين

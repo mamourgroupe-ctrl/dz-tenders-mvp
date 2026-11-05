@@ -32,3 +32,15 @@
 
 - The agent that writes a change does not approve it; changes go through a pull request and CI.
 - Never write literal keys or tokens in `.mcp.json` or `.vscode/mcp.json`; use `${input:...}` or environment variables.
+
+## 5. أدوار الوكلاء والتنسيق (Agent Roles & Coordination)
+نحن نعمل كفريق. لا تعمل بمعزل عن الآخرين.
+- **المنسق (Claude Code):** يكتب الخطط في `docs/agents/TASKS.md` ويحدد الفروع.
+- **المنفذ (Kilo Code / Google Antigravity):** ينفذ المهام، يتبع الـ Playbooks، ويكتب النتائج في `docs/agents/HANDOFF.md`.
+- **المراجع (Gemini Code Assist):** يقرأ `git diff` فقط، ولا يعدل، ويعطي قرار قبول/رفض.
+- **GitHub Copilot:** Second reviewer (Code Review) and assistant executor (Agent Mode).
+- **المساعد (Continue):** للإكمال التلقائي فقط.
+- **الملفات المرجعية:**
+  - المهام: `docs/agents/TASKS.md`
+  - التسليم: `docs/agents/HANDOFF.md`
+  - الإجراءات: `docs/agents/playbooks/*.md`
