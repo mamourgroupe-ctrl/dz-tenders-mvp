@@ -19,6 +19,9 @@ target-version = ["py311"]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = "-q"
+filterwarnings = [
+    "ignore::DeprecationWarning:starlette.*",
+]
 
 [tool.mypy]
 python_version = "3.11"
