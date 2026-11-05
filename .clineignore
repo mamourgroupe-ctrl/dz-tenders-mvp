@@ -1,0 +1,25 @@
+# ignores
+node_modules/
+dist/
+build/
+*.log
+*.lock
+coverage/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+agent-sessions/
+generated/
+tmp/
+.venv/
+venv/
+.env
+.env.*
+infra/secrets/
+storage/auth/
+storage/auth.backup.*
+storage/marches_state.json
+.playwright-mcp/
+crawlers/mounakassat_progress.json

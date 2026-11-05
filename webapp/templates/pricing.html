@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}صيغ الاشتراك — {{ site_name }}{% endblock %}
+{% block description %}صيغ اشتراك منصة مناقصات الجزائر: مجاني، برونزي، فضي، ذهبي، بريميوم، بلاتيني، وصيغة المزادات فقط.{% endblock %}
+
+{% block content %}
+<div class="container page">
+  <nav class="breadcrumbs" aria-label="مسار التنقل">
+    <a href="/">الرئيسية</a><span aria-hidden="true">/</span><span>الاشتراكات</span>
+  </nav>
+
+  <header class="page-header">
+    <div>
+      <h1>صيغ الاشتراك</h1>
+      <p class="lead">
+        العرض المجاني يعرض العنوان والنوع والقطاع والولاية وتاريخ النشر.
+        كل صيغة مدفوعة تفتح باقي التفاصيل ضمن عدد محدّد من القطاعات.
+      </p>
+    </div>
+  </header>
+
+  <div class="alert alert-info" role="note">
+    {{ icon("info", 18) }}
+    <div>
+      <strong>الأسعار المعروضة مؤقتة (Placeholder).</strong>
+      تُحدد الأسعار النهائية مع العميل قبل الإطلاق. تفعيل الاشتراك والدفع اليدوي
+      (تحويل بنكي، حساب بريدي، دفع نقدي) يُفتح في المرحلة الثانية.
+    </div>
+  </div>
+
+  <div class="plans-grid">
+    {% for plan in plans %}
+      <article class="plan-card {% if plan.code == 'gold' %}plan-featured{% endif %} {% if plan.kind.value == 'addon' %}plan-addon{% endif %}">
+        {% if plan.code == "gold" %}<span class="plan-ribbon">الأكثر ملاءمة</span>{% endif %}
+        <header>
+          <h2>{{ plan.name_ar }}</h2>
+          <p class="plan-name-fr" dir="ltr">{{ plan.name_fr }}</p>
+        </header>
+
+        <p class="plan-price">
+          {% if plan.price_monthly_dzd > 0 %}
+            <strong>{{ plan.price_monthly_dzd|dzd }}</strong>
+            <span>/ شهر</span>
+          {% else %}
+            <strong>مجاناً</strong>
+          {% endif %}
+        </p>
+
+        {% if plan.price_annual_dzd > 0 %}
+          <p class="plan-annual">
+            أو {{ plan.price_annual_dzd|dzd }} سنوياً
+            {% if plan.annual_discount_percent %}<span class="badge badge-discount">-{{ plan.annual_discount_percent }}%</span>{% endif %}
+          </p>
+        {% endif %}
+
+        <ul class="plan-features">
+          {% if plan.sector_limit is none %}
+            <li>{{ icon("check", 16) }} كل القطاعات</li>
+          {% elif plan.sector_limit == 0 %}
+            <li>{{ icon("check", 16) }} الإعلانات المجانية</li>
+          {% else %}
+            <li>{{ icon("check", 16) }} {{ plan.sector_limit }} {{ "قطاع" if plan.sector_limit > 1 else "قطاع واحد" }}</li>
+          {% endif %}
+          <li>{{ icon("check", 16) }} الجهة المصدرة والأجل</li>
+          <li>{{ icon("check", 16) }} الوصف الكامل والمرفقات</li>
+          {% if plan.auctions_only %}<li>{{ icon("check", 16) }} المزادات فقط</li>{% endif %}
+          {% if plan.kind.value == "addon" %}<li>{{ icon("check", 16) }} إضافة إلى أي صيغة</li>{% endif %}
+        </ul>
+
+        {% if plan.code == "free" %}
+          <a class="button button-outline button-block" href="/annonces">تصفّح مجاناً</a>
+        {% else %}
+          <span class="button button-disabled button-block" aria-disabled="true">التفعيل قريباً</span>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+
+  <section class="section section-tight">
+    <div class="prose">
+      <h2>كيف يعمل الاشتراك؟</h2>
+      <ol class="steps-list">
+        <li>تختار الصيغة والقطاعات المطلوبة.</li>
+        <li>تدفع يدوياً (تحويل بنكي، حساب بريدي، أو دفع نقدي) وترفع وصل الدفع.</li>
+        <li>يتحقق فريق الإدارة من الوصل ويُفعّل الاشتراك.</li>
+        <li>تصلك تنبيهات يومية بالجديد في قطاعاتك، وينتهي الاشتراك تلقائياً في تاريخه.</li>
+      </ol>
+      <p class="muted">للتفاصيل التجارية أو طلب عرض مخصص: <a href="/contact">اتصل بنا</a>.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}

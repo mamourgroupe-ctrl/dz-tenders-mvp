@@ -68,11 +68,18 @@ storage/auth/
 storage/auth.backup.*
 crawlers/mounakassat_progress.json
 
-# Diagnostic scripts
-check_dbs.py
-
 # Local DB backups
 storage/*.bak-*
 
 # Marches Publics session
 storage/marches_state.json
+crawlers/mounakassat_progress.json
+# Playwright MCP debug artifacts
+.playwright-mcp/
+# Legacy backups
+*.bak
+.env.*
+!.env.example
+.ai/config.env
+
+PowerShell/

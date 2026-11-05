@@ -17,7 +17,21 @@ DZ-TENDERS-MVP is a Python project that:
 - Weighted scoring classification
 - Support for 8 marketing families
 - Telegram notifications with Excel attachment
+- Tender evidence validation, with Google News articles excluded by default
+- Soft-noise marking for legacy rows that fail tender validation
 - Secure secrets storage with `.env` + `.gitignore`
+
+## BAOSEM and BOMOP crawlers
+
+Run either public-site crawler from the repository root:
+
+```bash
+python -m crawlers.baosem --dry-run
+python -m crawlers.bomop --dry-run
+```
+
+`--dry-run` prints parsed tender records as JSON without writing to SQLite.
+Omit it to save accepted records through the existing tender database.
 
 ## Tech Stack
 
@@ -65,6 +79,7 @@ Environment variables (see `.env.example`, empty placeholders only):
 | `DB_PATH` | `storage/tenders.db` (repo-root relative) | SQLite file opened read-only (`mode=ro`) |
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated allowed origins; credentials are never enabled |
 | `PORT` | `8000` locally | Hosting port used by the `Procfile` command |
+| `ALLOW_NEWS_AS_TENDERS` | `false` | Explicit opt-in to admitting Google News articles to tender collection |
 
 Endpoints (all `GET`, public-read, unauthenticated — only tender
 listings collected for publication are exposed):
@@ -89,10 +104,24 @@ heading); `publicationDate` is the stored `first_seen` date;
 `score = relevance_score`; `priority` reuses the project thresholds
 (>=85 → 1, >=70 → 2, else 3); `status` derives from the real `deadline`;
 `products` are recognized from the crawler free-text `product` column.
-Coordinates, estimated value, official reference, description and
-source name are **not stored**, so the API returns `null` for them and
-the dashboard renders explicit "not available" states — they are never
-fabricated.
+Coordinates, estimated value and description are not stored, so the API
+returns `null` for them. Tender references and collection source markers are
+stored when available; they are never fabricated.
+
+Collection stores only records with a valid deadline, a tender reference, or
+a contracting authority, and a relevance score of at least 3. Unknown wilayas
+remain `NULL`. Google News is disabled in the standard scraper configuration;
+`ALLOW_NEWS_AS_TENDERS=true` is an explicit opt-in and does not bypass evidence
+validation.
+
+Legacy rows can be reviewed and soft-marked without permanent deletion:
+
+```bash
+python -m storage.tools clean-noise --dry-run
+python -m storage.tools clean-noise
+```
+
+The API and dashboard counts exclude rows marked with `is_noise=1`.
 
 #### Frontend setup
 
@@ -137,7 +166,112 @@ npm run build
 npm run preview
 ```
 
+## Public platform (Phase 1)
+
+An Arabic-first (RTL), mobile-first site for Algerian public procurement:
+tenders, consultations, provisional awards, auctions, cancellations, deadline
+extensions, notices of default and contract terminations, classified by sector
+and wilaya, with plan-based access to the paid fields.
+
+### Quickstart
+
+```bash
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+
+# Create the schema (Alembic), seed reference data and demo content
+.venv/bin/python -m webapp.cli init-db --demo
+
+# Run the site
+.venv/bin/python -m webapp.cli serve --reload
+```
+
+Open <http://localhost:8000>. Seeded demo content is clearly flagged (`is_sample`)
+and every record carries a `https://example.dz` source URL.
+
+Useful commands:
+
+```bash
+.venv/bin/python -m webapp.cli seed --demo     # reference data + demo content (idempotent)
+.venv/bin/python -m webapp.cli reindex         # rebuild the Arabic FTS index
+.venv/bin/python -m webapp.cli create-user \
+    --phone 0555123456 --company "مؤسسة" --role admin   # password prompted
+```
+
+### Pages
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Home, latest announcements, sector/wilaya shortcuts |
+| `/annonces` | Search, filters (type, sector, wilaya, issuer, date), sort, pagination |
+| `/annonces/{id}/{slug}` | Announcement detail (canonical slug URL) |
+| `/archives`, `/archives/{year}` | Archive by publication year |
+| `/sous-traitance` | Subcontracting offers (contacts gated) |
+| `/tarifs` | Plans and pricing (placeholder prices flagged) |
+| `/contact`, `/conditions-utilisation`, `/confidentialite`, `/cookies` | Static/legal pages |
+| `/connexion` | Phone + password login |
+| `/sitemap.xml`, `/robots.txt`, `/health` | SEO and operations |
+
+### Access model
+
+* **Anonymous / free plan** — title, type, sector, wilaya and publication date.
+* **Paid plan** — issuer, deadline, description, reference, estimated value,
+  attachments and source URL, limited to the sectors attached to the
+  subscription. Platinum covers every sector; the auctions-only plan unlocks
+  auctions exclusively. Staff accounts bypass gating.
+
+Gating is enforced server-side in `webapp/access.py`; the template never
+receives a field the visitor may not see.
+
+### Arabic-aware search
+
+`webapp/text.py` folds alef/hamza variants, ta marbuta/ya, diacritics, tatweel,
+Arabic-Indic digits and Latin accents before indexing and querying. SQLite FTS5
+is used when available; otherwise the repository falls back to escaped `LIKE`
+queries with the same normalisation.
+
+### Database
+
+The platform uses its own database (`storage/platform.db` by default) so the
+legacy scraper pipeline keeps writing to `storage/tenders.db`. Schema changes go
+through Alembic:
+
+```bash
+APP_DATABASE_URL=postgresql+psycopg://user:pass@host/dz .venv/bin/alembic upgrade head
+```
+
+SQLite-only features (FTS5 and its shadow tables) are excluded from autogenerate
+and created in the migration itself. On Postgres the search layer automatically
+uses the `LIKE` path.
+
+Configuration lives in `.env` (see `.env.example`); no secret is committed and
+production requires explicit values.
+
+See [`docs/AUDIT.md`](docs/AUDIT.md) for the Step 0 audit and
+[`docs/PHASE1_REPORT.md`](docs/PHASE1_REPORT.md) for the Phase 1 report.
+
 ## Project Structure
+
+```
+.
+├── api/                 Read-only FastAPI service over the legacy tenders table
+├── crawlers/            Legacy multi-source crawlers
+├── data/                Classification targets and source catalogues
+├── docs/                Audit, diagnostic and phase reports
+├── migrations/          Alembic environment and revisions
+├── notifications/       Telegram / SMTP digest delivery
+├── src/                 React + TypeScript dashboard (Vite)
+├── storage/             Legacy SQLite storage, delivery and tools
+├── tests/               Legacy pipeline tests + Phase 1 platform tests
+└── webapp/              Public Arabic platform
+    ├── web/             FastAPI app, routes and dependencies
+    ├── templates/       Jinja2 RTL templates
+    ├── static/          CSS design system, JS and SVG assets
+    ├── models.py        SQLAlchemy schema (28 tables)
+    ├── search.py        Search filters and FTS5/LIKE queries
+    ├── access.py        Plan-based field gating
+    └── cli.py           init-db / seed / reindex / create-user / serve
+```
 
 ## Blocked Notifications · إدارة الإشعارات المحجوبة
 

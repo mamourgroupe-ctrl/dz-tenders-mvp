@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}{{ heading }} — {{ site_name }}{% endblock %}
+{% block description %}{{ intro }}{% endblock %}
+
+{% block content %}
+<div class="container page">
+  <nav class="breadcrumbs" aria-label="مسار التنقل">
+    <a href="/">الرئيسية</a>
+    <span aria-hidden="true">/</span>
+    <span>{{ heading }}</span>
+  </nav>
+
+  <header class="page-header">
+    <div>
+      <h1>{{ heading }}</h1>
+      <p class="lead">{{ intro }}</p>
+    </div>
+    {% if show_archive_link %}
+      <a class="button button-ghost button-small" href="/archives">{{ icon("calendar", 16) }} الأرشيف حسب السنة</a>
+    {% endif %}
+  </header>
+
+  {% if state.errors %}
+    <div class="alert alert-warning" role="alert">
+      <ul>
+        {% for error in state.errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div class="layout-with-sidebar">
+    <aside class="sidebar">
+      {% include "partials/filters.html" %}
+    </aside>
+
+    <section class="results" aria-label="نتائج البحث">
+      <div class="results-bar">
+        <p class="results-count">
+          {% if result.total %}
+            <strong>{{ result.total }}</strong> نتيجة
+            {% if result.total > result.per_page %} — الصفحة {{ result.page }} من {{ result.pages }}{% endif %}
+          {% else %}
+            لا توجد نتائج مطابقة
+          {% endif %}
+          {% if result.used_fts %}<span class="results-mode">بحث مطابق للمعنى الإملائي</span>{% endif %}
+        </p>
+        <div class="sort-links" aria-label="ترتيب النتائج">
+          <span>ترتيب:</span>
+          {% for key, label in sort_options.items() %}
+            {% if key == "relevance" and not filters.q %}{% else %}
+              <a href="{{ sort_url(request, key) }}"
+                 class="{% if state.sort == key %}is-active{% endif %}"
+                 {% if state.sort == key %}aria-current="true"{% endif %}>{{ label }}</a>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if filters.q or state.active_count %}
+        <ul class="active-filters" aria-label="التصفية النشطة">
+          {% if filters.q %}<li>بحث: «{{ filters.q }}»</li>{% endif %}
+          {% if state.type %}<li>{{ state.type|type_label }}</li>{% endif %}
+          {% if state.wilaya %}<li>ولاية: {{ state.wilaya }}</li>{% endif %}
+          {% if state.sector %}<li>قطاع: {{ state.sector }}</li>{% endif %}
+          {% if state.date_from or state.date_to %}<li>تاريخ محدد</li>{% endif %}
+          <li class="active-filters-reset"><a href="{{ request.url.path }}">مسح التصفية</a></li>
+        </ul>
+      {% endif %}
+
+      {% if views %}
+        <div class="cards-grid">
+          {% for view in views %}
+            {% include "partials/card.html" %}
+          {% endfor %}
+        </div>
+        {% include "partials/pagination.html" %}
+      {% else %}
+        <div class="empty-state">
+          {{ icon("search", 30) }}
+          <h2>لم نجد إعلانات مطابقة</h2>
+          <p>جرّب كلمات أقل، أزل بعض المرشّحات، أو ابحث في الأرشيف حسب السنة.</p>
+          <div class="empty-actions">
+            <a class="button button-primary" href="/annonces">كل الإعلانات</a>
+            <a class="button button-ghost" href="/archives">الأرشيف</a>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

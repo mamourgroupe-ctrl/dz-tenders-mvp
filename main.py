@@ -64,7 +64,7 @@ logger = logging.getLogger("dz_tenders.main")
 #: To re-enable a source: flip False to True (no other change needed).
 CRAWLER_SOURCES = [
     (SafqaticCrawler, True),
-    (GoogleNewsCrawler, True),
+    (GoogleNewsCrawler, False),
     (MarchesPublicsAuthCrawler, True),  # requires storage/marches_state.json
     (ADECrawler, False),
     (ONACrawler, False),

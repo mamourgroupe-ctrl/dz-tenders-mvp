@@ -178,14 +178,14 @@ def test_organisation_is_the_truthful_ade_constant(crawler):
     assert "ADE" in ADE_ORGANISATION
 
 
-def test_wilaya_is_left_empty_for_the_filter_to_infer(crawler):
-    """الولاية تُترك فارغة؛ ``classify_tender`` يملؤها من العنوان.
+def test_wilaya_is_left_null_for_the_filter_to_infer(crawler):
+    """الولاية غير المستخرجة تبقى null؛ لا تُستبدل بقيمة افتراضية.
 
-    التكرار هنا كان سيجعل منطق الاستنتاج موزّعاً على طبقتين.
+    يمكن لطبقة التصنيف أن تستنتج ولاية معروفة من العنوان.
     """
     tenders = crawler.parse_tenders(_load("ade_categorie_appel_doffres.html"))
 
-    assert all(t["wilaya"] == "" for t in tenders)
+    assert all(t["wilaya"] is None for t in tenders)
 
 
 def test_absent_fields_are_marked_not_invented(crawler):
@@ -237,7 +237,7 @@ def test_real_ade_corpus_carries_no_resolvable_wilaya():
     tenders = crawler.parse_tenders(_load("ade_categorie_appel_doffres.html"))
     el_eulma_tender = next(t for t in tenders if "El Eulma" in t["title"])
 
-    assert el_eulma_tender["wilaya"] == ""
+    assert el_eulma_tender["wilaya"] is None
     assert TenderFilter().find_wilaya_in_text(el_eulma_tender["title"]) is None
 
 

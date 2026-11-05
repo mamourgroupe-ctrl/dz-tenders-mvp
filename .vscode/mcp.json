@@ -8,15 +8,37 @@
     }
   ],
   "servers": {
-    "context7": {
-      "type": "http",
-      "url": "https://mcp.context7.com/mcp"
-    },
     "perplexity": {
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "perplexity-user-mcp"],
       "env": { "PERPLEXITY_API_KEY": "${input:perplexity-key}" }
+    },
+    "appmap": {
+      "type": "stdio",
+      "command": "${userHome}/.appmap/bin/appmap",
+      "args": [
+        "query",
+        "mcp"
+      ]
+    },
+    "appmap-gold-traces": {
+      "type": "stdio",
+      "command": "${userHome}/.appmap/bin/appmap",
+      "args": [
+        "query",
+        "mcp",
+        "--appmap-dir",
+        "gold_traces/baseline/appmaps",
+        "--query-db",
+        "tmp/gold_traces_query.db"
+      ]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"],
+      "disabled": true
     }
   }
 }

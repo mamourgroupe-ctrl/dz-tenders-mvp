@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+# Stack-agnostic pre-commit: secret scan, then optional project-specific hook.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --staged --redact -v 2>/dev/null || gitleaks protect --staged --redact -v || exit 1
+else
+  echo "⚠️  gitleaks not installed — secret scan skipped (https://github.com/gitleaks/gitleaks)"
+fi
+[ -x .githooks/pre-commit.local ] && exec .githooks/pre-commit.local
+exit 0

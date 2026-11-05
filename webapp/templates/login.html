@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+
+{% block title %}تسجيل الدخول — {{ site_name }}{% endblock %}
+{% block description %}الدخول إلى حساب المشترك للاطلاع على تفاصيل المناقصات.{% endblock %}
+
+{% block content %}
+<div class="container page auth-page">
+  <div class="auth-card">
+    <div class="auth-head">
+      <span class="auth-icon">{{ icon("lock", 24) }}</span>
+      <h1>تسجيل الدخول</h1>
+      <p>الدخول برقم الهاتف وكلمة المرور.</p>
+    </div>
+
+    {% if error %}
+      <div class="alert alert-warning" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/connexion" class="auth-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="next" value="{{ next_url }}">
+
+      <div class="filter-field">
+        <label for="phone">رقم الهاتف</label>
+        <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"
+               value="{{ phone }}" placeholder="0555 12 34 56" required
+               aria-describedby="phone-help">
+        <small id="phone-help" class="field-help">أدخل رقمك الجزائري: 05، 06 أو 07 متبوعاً بثمانية أرقام.</small>
+      </div>
+
+      <div class="filter-field">
+        <label for="password">كلمة المرور</label>
+        <input id="password" name="password" type="password" autocomplete="current-password"
+               required minlength="8" maxlength="128">
+      </div>
+
+      <button class="button button-primary button-block" type="submit">دخول</button>
+    </form>
+
+    <div class="auth-note">
+      <p>لا تملك حساباً؟ التسجيل ورمز التحقق عبر الهاتف يُفتحان في المرحلة الثانية من الإطلاق.</p>
+      <p>للاستفسار عن الاشتراك: <a href="/contact">اتصل بنا</a>.</p>
+    </div>
+  </div>
+
+  <aside class="auth-aside">
+    <h2>ماذا يفتح الاشتراك؟</h2>
+    <ul class="check-list">
+      <li>{{ icon("check", 17) }} الجهة المصدرة لكل إعلان</li>
+      <li>{{ icon("check", 17) }} أجل التسليم والمرجع</li>
+      <li>{{ icon("check", 17) }} الوصف الكامل والمرفقات</li>
+      <li>{{ icon("check", 17) }} القطاعات التي تختارها فقط</li>
+    </ul>
+    <a class="button button-outline button-block" href="/tarifs">صيغ الاشتراك</a>
+  </aside>
+</div>
+{% endblock %}

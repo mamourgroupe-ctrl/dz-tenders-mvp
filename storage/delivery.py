@@ -27,6 +27,8 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from storage.tender_quality import is_valid_tender
+
 from .lock import DbLockTimeout, db_lock, lock_timeout_seconds
 
 logger = logging.getLogger(__name__)
@@ -100,7 +102,11 @@ def _deliver_locked(
     on_pending: Callable[[list[dict]], None] | None,
 ) -> DeliveryOutcome:
     """تنفيذ التسلسل الحرج. يجب استدعاؤه والتزامه بقفل قاعدة البيانات."""
-    pending = [tender for tender in tenders if store.is_new_or_changed(tender)]
+    pending = [
+        tender
+        for tender in tenders
+        if is_valid_tender(tender) and store.is_new_or_changed(tender)
+    ]
     if not pending:
         logger.info("✅ لا توجد صفقات تستحق الإشعار")
         return DeliveryOutcome(status=STATUS_EMPTY, total=_total_in_db(store))
