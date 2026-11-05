@@ -51,6 +51,7 @@ Thumbs.db
 
 # Local AI assistant config
 .mcp.json
+.vscode/mcp.json
 .kilo/
 .playwright-mcp/
 .claude/settings.local.json
