@@ -8,6 +8,7 @@ import pytest
 from crawlers.marches_publics_auth_crawler import MarchesPublicsAuthCrawler
 
 FIXTURES = Path(__file__).parent / "fixtures"
+DEFAULT_STATE_PATH = Path("storage/marches_state.json")
 
 
 @pytest.fixture
@@ -18,6 +19,19 @@ def crawler():
 @pytest.fixture
 def next_data():
     return json.loads((FIXTURES / "marches_sample.json").read_text(encoding="utf-8"))
+
+
+def test_state_path_defaults_to_storage_dir(monkeypatch):
+    monkeypatch.delenv("MARCHES_STATE_PATH", raising=False)
+    crawler = MarchesPublicsAuthCrawler()
+    assert crawler.state_path == DEFAULT_STATE_PATH
+
+
+def test_state_path_honors_environment_variable(monkeypatch, tmp_path):
+    state_path = tmp_path / "custom" / "state.json"
+    monkeypatch.setenv("MARCHES_STATE_PATH", str(state_path))
+    crawler = MarchesPublicsAuthCrawler()
+    assert crawler.state_path == state_path
 
 
 def test_parse_tenders_returns_list(crawler, next_data):

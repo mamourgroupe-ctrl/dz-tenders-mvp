@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://marches-publics.gov.dz"
 SECTOR = "marches_publics"
-DEFAULT_STATE = Path("storage/marches_state.json")
+DEFAULT_STATE = Path(os.getenv("MARCHES_STATE_PATH", "storage/marches_state.json"))
 
 
 class MarchesPublicsAuthCrawler(BaseCrawler):
     """Crawler for the official Algerian public-procurement portal.
 
-    Requires an authenticated session saved in `storage/marches_state.json`.
+    Requires an authenticated session saved at ``MARCHES_STATE_PATH``.
 
     Env vars:
         MARCHES_MAX_PAGES  (default 3)  — pages to fetch
