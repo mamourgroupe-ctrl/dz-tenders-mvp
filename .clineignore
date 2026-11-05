@@ -18,3 +18,8 @@ venv/
 .env
 .env.*
 infra/secrets/
+storage/auth/
+storage/auth.backup.*
+storage/marches_state.json
+.playwright-mcp/
+crawlers/mounakassat_progress.json

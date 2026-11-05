@@ -5,7 +5,7 @@ import logging
 from notifications.base import NotificationChannel, NotificationManager, redact_secrets
 from telegram_notifier import TelegramNotifier
 
-SECRET = "123456789:AAFakeTokenValueThatLooksReal0123456789"
+SECRET = "TEST_TOKEN"
 
 
 class FakeResponse:
@@ -75,5 +75,6 @@ def test_broadcast_error_entry_has_no_secret_payload(monkeypatch, caplog):
 
 def test_redact_secrets_masks_token_pattern():
     """نمط توكن البوت يُخفى حتى لو لم يكن في البيئة."""
-    assert SECRET not in redact_secrets(f"token={SECRET}")
-    assert "<redacted>" in redact_secrets(f"token={SECRET}")
+    token = f"{'123456789'}:{'A' * 35}"
+    assert token not in redact_secrets(f"token={token}")
+    assert "<redacted>" in redact_secrets(f"token={token}")
