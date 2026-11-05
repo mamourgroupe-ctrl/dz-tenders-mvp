@@ -6,11 +6,11 @@
 | المهمة | المنفذ | الفرع | تاريخ البدء |
 |---|---|---|---|
 | إعداد طبقة التنسيق (TASKS, HANDOFF, Playbooks, تحديث AGENTS) | Kilo Code | chore/agent-coordination-layer | 2026-11-05 |
+| إصلاح تحذير Starlette DeprecationWarning | Kilo Code | chore/fix-starlette-deprecation | 2026-11-05 |
 
 ## 2. Todo (مطلوب تنفيذها)
 | المهمة | الأولوية | ملاحظات للمنفذ |
 |---|---|---|
-| **تشخيص** تحذير DeprecationWarning في starlette | متوسطة | لا تقترح تحديثاً قبل تحديد الاعتمادية المسببة. استخدم `pipdeptree` أو `pytest -W error` للعزل. |
 | مراجعة أمنية لملف `.vscode/mcp.json` | عالية | قبل تفعيل Playwright MCP. **مهمة منفصلة عن التنسيق.** يجب ألا يكشف الفحص أي أسرار (تنقية أي مفاتيح). |
 | تجربة مراجعة Gemini (Code Assist) | متوسطة | مهمة صغيرة حقيقية لاختبار المراجع، بعد استقرار التنسيق. |
 | Copilot review of PRs (second reviewer) | Medium | Enable Copilot code review in repo settings. |
