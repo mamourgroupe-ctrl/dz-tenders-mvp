@@ -12,7 +12,6 @@
     "kilo-code.new.agentManager.nextTerminal"
   ],
   "workbench.colorCustomizations": {},
-  "qwen-code.provider": "api-key",
   "claudeCode.hideOnboarding": true,
   "semgrep.scanOnSave": true,
   "chat.mcp.access": "all",
@@ -143,10 +142,9 @@
   ],
   "[python]": {
     "editor.tabSize": 4,
-    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.ruff": "explicit",
       "source.organizeImports.ruff": "explicit"
     }
   },

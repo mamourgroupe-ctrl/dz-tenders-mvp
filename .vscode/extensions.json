@@ -5,7 +5,6 @@
     "saoudrizwan.claude-dev",
     "anthropic.claude-code",
     "Continue.continue",
-    "SonarSource.sonarlint-vscode",
     "Codium.codium",
     "snyk-security.snyk-vulnerability-scanner",
     "Semgrep.semgrep",
@@ -36,7 +35,6 @@
     "wix.vscode-import-cost",
     "mhutchie.git-graph",
     "mikestead.dotenv",
-    "ms-python.black-formatter",
     "ms-python.flake8",
     "ms-python.isort",
     "ms-python.pylint"
