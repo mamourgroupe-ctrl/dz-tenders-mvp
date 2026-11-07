@@ -6,6 +6,7 @@ pandas>=2.0.0
 openpyxl>=3.1.0
 fastapi>=0.115,<0.116
 uvicorn[standard]>=0.30,<0.35
+playwright>=1.40.0  # required by crawlers/marches_publics_auth_crawler.py
 
 # --- Public platform (webapp/) ---
 sqlalchemy>=2.0,<2.1

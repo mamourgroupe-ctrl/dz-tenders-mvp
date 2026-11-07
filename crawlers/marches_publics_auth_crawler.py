@@ -9,6 +9,14 @@ import re
 import time
 from pathlib import Path
 
+from playwright.sync_api import (
+    Browser,
+    BrowserContext,
+    Page,
+    Playwright,
+    sync_playwright,
+)
+
 from .base_crawler import BaseCrawler, sanitize_url
 
 logger = logging.getLogger(__name__)
@@ -34,10 +42,10 @@ class MarchesPublicsAuthCrawler(BaseCrawler):
         self.state_path = Path(os.getenv("MARCHES_STATE_PATH", str(DEFAULT_STATE)))
         self.max_pages = int(os.getenv("MARCHES_MAX_PAGES", "3"))
         self.delay_sec = int(os.getenv("MARCHES_DELAY_SEC", "6"))
-        self._playwright = None
-        self._browser = None
-        self._context = None
-        self._page = None
+        self._playwright: Playwright | None = None
+        self._browser: Browser | None = None
+        self._context: BrowserContext | None = None
+        self._page: Page | None = None
 
     # ------------------------------------------------------------------ #
     def _ensure_browser(self) -> None:
@@ -47,7 +55,6 @@ class MarchesPublicsAuthCrawler(BaseCrawler):
             raise FileNotFoundError(
                 f"Session file not found: {self.state_path}. Run: python scripts/marches_login.py"
             )
-        from playwright.sync_api import sync_playwright
 
         self._playwright = sync_playwright().start()
         self._browser = self._playwright.chromium.launch(channel="msedge", headless=False)
@@ -78,6 +85,7 @@ class MarchesPublicsAuthCrawler(BaseCrawler):
     def _load_page(self, url: str, retries: int = 3) -> dict | None:
         """Navigate to URL and return __NEXT_DATA__, with retries."""
         self._ensure_browser()
+        assert self._page is not None  # _ensure_browser guarantees a page
 
         for attempt in range(1, retries + 1):
             try:
