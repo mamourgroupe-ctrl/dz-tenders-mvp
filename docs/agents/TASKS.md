@@ -8,6 +8,8 @@
 | إعداد طبقة التنسيق (TASKS, HANDOFF, Playbooks, تحديث AGENTS) | Kilo Code | chore/agent-coordination-layer | 2026-11-05 |
 | إصلاح تحذير Starlette DeprecationWarning | Kilo Code | chore/fix-starlette-deprecation | 2026-11-05 |
 
+| فحص اكتمال زواحف BAOSEM و BOMOP واختباراتها | Kilo Code | chore/audit-baosem-bomop | 2026-11-07 |
+
 ## 2. Todo (مطلوب تنفيذها)
 | المهمة | الأولوية | ملاحظات للمنفذ |
 |---|---|---|
