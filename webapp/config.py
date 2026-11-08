@@ -193,7 +193,9 @@ def _validate_secret_formats() -> None:
     # Telegram bot token format: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     if telegram_token and not re.match(r"^\d+:[A-Za-z0-9_-]{35}$", telegram_token):
-        raise RuntimeError("TELEGRAM_BOT_TOKEN format invalid (expected '123456:ABC...')")
+        raise RuntimeError(
+            "TELEGRAM_BOT_TOKEN format invalid (expected '123456:ABC...')"
+        )
 
     # SMTP port should be numeric
     smtp_port = os.getenv("SMTP_PORT", "")
