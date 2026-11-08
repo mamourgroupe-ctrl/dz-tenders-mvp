@@ -1,4 +1,3 @@
-# Python / Backend
 .venv
 venv
 __pycache__
@@ -14,8 +13,6 @@ railway.json
 railway.*.json
 *.db
 *.db-*
-
-# Backend folders
 webapp
 api
 crawlers
@@ -24,8 +21,6 @@ data
 storage
 tests
 docs
-
-# Git / IDE / OS
 .git
 .github
 .vscode
@@ -34,8 +29,6 @@ docs
 .env.*
 .mcp.json
 *.log
-
-# Node
 node_modules
 dist
 npm-debug.log
