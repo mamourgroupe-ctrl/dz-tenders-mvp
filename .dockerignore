@@ -1,0 +1,41 @@
+# Python / Backend
+.venv
+venv
+__pycache__
+*.py
+*.pyc
+main.py
+run_smart_scraper.py
+test_run.py
+requirements*.txt
+pyproject.toml
+Procfile
+railway.json
+railway.*.json
+*.db
+*.db-*
+
+# Backend folders
+webapp
+api
+crawlers
+scripts
+data
+storage
+tests
+docs
+
+# Git / IDE / OS
+.git
+.github
+.vscode
+.idea
+.env
+.env.*
+.mcp.json
+*.log
+
+# Node
+node_modules
+dist
+npm-debug.log
