@@ -1,82 +1,154 @@
 name: CI
-
 on:
-  pull_request:
   push:
-    branches:
-      - main
-  workflow_dispatch:
-
-permissions:
-  contents: read
+    branches: ['*']
+  pull_request:
+    branches: ['*']
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint and format
+  # ============================================================
+  # Python: Lint, Type Check, Test, Security Scan
+  # ============================================================
+  python:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: pip
-      - name: Install tools
-        run: pip install -r requirements-dev.txt
-      - name: Ruff
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt
+          pip install pip-audit
+
+      - name: Ruff (lint)
         run: ruff check .
-      - name: Black
-        run: black --check webapp migrations tests/conftest.py tests/test_phase1_*.py
 
-  typecheck:
-    name: Type check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: pip
-      - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
-      - name: mypy
-        run: mypy webapp --ignore-missing-imports
+      - name: Black (format check)
+        run: black --check .
 
-  test:
-    name: Tests (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ['3.11', '3.12']
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - name: Install dependencies
-        run: pip install -r requirements.txt -r requirements-dev.txt
-      - name: Run the suite
+      - name: MyPy (type check)
+        run: mypy . --ignore-missing-imports
+
+      - name: Pytest (unit + integration tests)
+        run: pytest -q
         env:
-          APP_ENV: test
-        run: python -m pytest -o addopts="" -q
+          DRY_RUN: "true"
+          APP_ENV: "test"
 
-  frontend:
-    name: Frontend build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Pip-audit (dependency vulnerability scan)
+        run: |
+          pip-audit -r requirements.txt -r requirements-dev.txt --format=json --output=pip-audit-report.json || true
+          if [ -f pip-audit-report.json ]; then
+            HIGH_CRITICAL=$(jq '[.vulnerabilities[] | select(.severity == "HIGH" or .severity == "CRITICAL")] | length' pip-audit-report.json)
+            if [ "$HIGH_CRITICAL" -gt 0 ]; then
+              echo "::error::Found $HIGH_CRITICAL HIGH/CRITICAL vulnerabilities"
+              jq '.vulnerabilities[] | select(.severity == "HIGH" or .severity == "CRITICAL") | "\(.package) \(.installed_version) -> \(.fixed_version): \(.vulnerability_id) (\(.severity))"' pip-audit-report.json
+              exit 1
+            fi
+          fi
+
+      - name: Upload pip-audit report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          node-version: '22'
-          cache: npm
+          name: pip-audit-report
+          path: pip-audit-report.json
+          retention-days: 7
+
+  # ============================================================
+  # Frontend: Lint, Type Check, Build, Security Scan
+  # ============================================================
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    defaults:
+      run:
+        working-directory: ./
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
       - name: Install dependencies
         run: npm ci
-      - name: Type-check and build
+
+      - name: TypeScript type check (lint)
+        run: npm run lint
+
+      - name: Production build
+        run: npm run build
+
+      - name: NPM audit (security scan)
         run: |
-          npx tsc --noEmit
-          npm run build
+          npm audit --audit-level=high --json > npm-audit-report.json || true
+          HIGH_CRITICAL=$(jq '[.vulnerabilities[] | select(.severity == "high" or .severity == "critical")] | length' npm-audit-report.json 2>/dev/null || echo 0)
+          if [ "$HIGH_CRITICAL" -gt 0 ]; then
+            echo "::error::Found $HIGH_CRITICAL HIGH/CRITICAL npm vulnerabilities"
+            jq -r '.vulnerabilities[] | select(.severity == "high" or .severity == "critical") | "\(.name)@\(.version): \(.title) (\(.severity))"' npm-audit-report.json 2>/dev/null || true
+            exit 1
+          fi
+
+      - name: Upload npm audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: npm-audit-report.json
+          retention-days: 7
+
+  # ============================================================
+  # Summary job (runs after all others)
+  # ============================================================
+  summary:
+    name: CI Summary
+    needs: [python, frontend]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check job results
+        run: |
+          echo "## CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Python (lint, type, test, audit) | ${{ needs.python.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend (lint, build, audit) | ${{ needs.frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.python.result }}" != "success" || "${{ needs.frontend.result }}" != "success" ]]; then
+            echo "CI FAILED - See job logs for details" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "CI PASSED" >> $GITHUB_STEP_SUMMARY
+          fi

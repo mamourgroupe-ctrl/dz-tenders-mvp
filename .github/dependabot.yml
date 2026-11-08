@@ -1,0 +1,87 @@
+# Dependabot Configuration
+# Weekly dependency updates for pip (Python) and npm (Node.js)
+# Creates PRs for vulnerable/outdated dependencies
+
+version: 2
+updates:
+  # Python dependencies (requirements.txt, requirements-dev.txt)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"  # UTC, after backup (02:00) and before scraper (06:00)
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps(pip)"
+      include: "scope"
+    groups:
+      # Group dev dependencies together
+      dev-dependencies:
+        patterns:
+          - "pytest*"
+          - "ruff*"
+          - "mypy*"
+          - "black*"
+          - "httpx*"
+          - "debugpy"
+          - "pip-audit"
+      # Group core dependencies together
+      core-dependencies:
+        patterns:
+          - "requests*"
+          - "python-dotenv*"
+          - "beautifulsoup4*"
+          - "lxml*"
+          - "pandas*"
+          - "openpyxl*"
+          - "fastapi*"
+          - "uvicorn*"
+          - "playwright*"
+          - "sqlalchemy*"
+          - "alembic*"
+          - "jinja2*"
+          - "argon2-cffi*"
+          - "python-multipart*"
+
+  # Node.js dependencies (package.json)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:30"  # UTC, staggered from pip
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "frontend"
+    commit-message:
+      prefix: "deps(npm)"
+      include: "scope"
+    groups:
+      # Group dev dependencies
+      dev-dependencies:
+        patterns:
+          - "@types/*"
+          - "typescript*"
+          - "vite*"
+          - "autoprefixer*"
+          - "postcss*"
+          - "tailwindcss*"
+      # Group React ecosystem
+      react-ecosystem:
+        patterns:
+          - "react*"
+          - "@tanstack/*"
+      # Group UI/charting libraries
+      ui-libraries:
+        patterns:
+          - "recharts*"
+          - "lucide-react*"
+          - "leaflet*"
+          - "react-leaflet*"
+          - "react-router-dom*"
+          - "serve*"
