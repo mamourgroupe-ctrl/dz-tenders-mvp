@@ -61,10 +61,10 @@ jobs:
         run: |
           pip-audit -r requirements.txt -r requirements-dev.txt --format=json --output=pip-audit-report.json || true
           if [ -f pip-audit-report.json ]; then
-            HIGH_CRITICAL=$(jq '[.vulnerabilities[] | select(.severity == "HIGH" or .severity == "CRITICAL")] | length' pip-audit-report.json)
+            HIGH_CRITICAL=$(jq '[.dependencies[] | .vulns[] | select(.severity == "HIGH" or .severity == "CRITICAL")] | length' pip-audit-report.json)
             if [ "$HIGH_CRITICAL" -gt 0 ]; then
               echo "::error::Found $HIGH_CRITICAL HIGH/CRITICAL vulnerabilities"
-              jq '.vulnerabilities[] | select(.severity == "HIGH" or .severity == "CRITICAL") | "\(.package) \(.installed_version) -> \(.fixed_version): \(.vulnerability_id) (\(.severity))"' pip-audit-report.json
+              jq '.dependencies[] | .vulns[] | select(.severity == "HIGH" or .severity == "CRITICAL") | "\(.name) \(.version) -> \(.fix_versions[]): \(.id) (\(.severity))"' pip-audit-report.json
               exit 1
             fi
           fi

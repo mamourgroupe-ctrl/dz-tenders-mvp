@@ -144,7 +144,9 @@ def _deliver_locked(
     else:
         for tender in pending:
             store.register_failed_attempt(tender, error)
-        logger.warning("فشل الإرسال عبر كل القنوات — سُجّلت محاولة فاشلة لكل صفقة: %s", error)
+        logger.warning(
+            "فشل الإرسال عبر كل القنوات — سُجّلت محاولة فاشلة لكل صفقة: %s", error
+        )
         status = STATUS_FAILED
 
     return DeliveryOutcome(

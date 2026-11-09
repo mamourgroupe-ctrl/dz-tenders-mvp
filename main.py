@@ -102,11 +102,15 @@ def scrape_all_sources() -> list[dict]:
                     logger.debug("close() failed for %s: %s", name, e)
 
     # إزالة التكرار
-    unique = list({t.get("title", ""): t for t in all_tenders if t.get("title")}.values())
+    unique = list(
+        {t.get("title", ""): t for t in all_tenders if t.get("title")}.values()
+    )
     return unique
 
 
-def drop_reference_data(tenders: list[dict], include_samples: bool = False) -> list[dict]:
+def drop_reference_data(
+    tenders: list[dict], include_samples: bool = False
+) -> list[dict]:
     """حذف البيانات المرجعية (المُلفّقة) إلا عند طلب تضمينها صراحةً.
 
     Args:
@@ -117,7 +121,9 @@ def drop_reference_data(tenders: list[dict], include_samples: bool = False) -> l
         قائمة المناقصات الحية فقط عند include_samples=False.
     """
     if include_samples:
-        logger.warning("INCLUDE_SAMPLES=true: سيتم إبلاغ المستخدم ببيانات مرجعية غير حقيقية")
+        logger.warning(
+            "INCLUDE_SAMPLES=true: سيتم إبلاغ المستخدم ببيانات مرجعية غير حقيقية"
+        )
         return list(tenders)
 
     kept = [t for t in tenders if not t.get("is_sample")]
@@ -239,7 +245,10 @@ def build_summary_message(new_tenders: list[dict]) -> str:
         score = t.get("relevance_score") or 0
         badge = _priority_badge(score)
         title = _h(
-            (t.get("title") or "\u0628\u062f\u0648\u0646 \u0639\u0646\u0648\u0627\u0646")[:100]
+            (
+                t.get("title")
+                or "\u0628\u062f\u0648\u0646 \u0639\u0646\u0648\u0627\u0646"
+            )[:100]
         )
         org = _h(t.get("organisation") or "")
         wilaya = _h(t.get("wilaya") or "")
@@ -284,7 +293,9 @@ def run():
     all_tenders = scrape_all_sources()
     logger.info(f"تم جلب {len(all_tenders)} مناقصة فريدة")
 
-    live_tenders = drop_reference_data(all_tenders, include_samples=config.include_samples)
+    live_tenders = drop_reference_data(
+        all_tenders, include_samples=config.include_samples
+    )
     logger.info(f"تبقّى {len(live_tenders)} مناقصة بعد استبعاد البيانات المرجعية")
 
     logger.info("🔍 تطبيق فلترة العائلات التسويقية...")
@@ -320,7 +331,9 @@ def run():
             return True, ""
 
         error_msg = "; ".join(
-            str(entry.get("error", "unknown")) for entry in results if entry.get("error")
+            str(entry.get("error", "unknown"))
+            for entry in results
+            if entry.get("error")
         )
         return False, error_msg
 

@@ -30,7 +30,9 @@ def find_manifest(backup_path: Path) -> Path:
     alt_manifest = backup_path.with_name(backup_path.name + ".manifest.json")
     if alt_manifest.exists():
         return alt_manifest
-    raise FileNotFoundError(f"Manifest not found for {backup_path}. Expected: {manifest_path}")
+    raise FileNotFoundError(
+        f"Manifest not found for {backup_path}. Expected: {manifest_path}"
+    )
 
 
 def read_manifest(manifest_path: Path) -> dict:
@@ -61,9 +63,7 @@ def verify_backup_sqlite(backup_path: Path) -> dict:
     try:
         tables = [
             row[0]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
         ]
         counts = {}
         for table in ("tenders", "announcements", "users", "subscriptions"):
@@ -89,9 +89,7 @@ def verify_destination(dest_path: Path) -> dict | None:
     try:
         tables = [
             row[0]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
         ]
         counts = {}
         for table in ("tenders", "announcements", "users", "subscriptions"):
@@ -112,7 +110,9 @@ def verify_destination(dest_path: Path) -> dict | None:
 def verify_consistency(src_info: dict, dest_info: dict) -> bool:
     """Verify two databases are logically consistent (tables + row counts)."""
     if src_info["tables"] != dest_info["tables"]:
-        print(f"  [ERROR] Table mismatch: source={src_info['tables']}, dest={dest_info['tables']}")
+        print(
+            f"  [ERROR] Table mismatch: source={src_info['tables']}, dest={dest_info['tables']}"
+        )
         return False
     for table, count in src_info["counts"].items():
         if dest_info["counts"].get(table) != count:
@@ -153,7 +153,9 @@ def restore_database(
     if not expected_sha256:
         raise RuntimeError("Manifest missing SHA256 checksum — cannot verify integrity")
     if not verify_sha256(backup_path, expected_sha256):
-        raise RuntimeError("SHA256 verification failed — backup may be corrupted or tampered")
+        raise RuntimeError(
+            "SHA256 verification failed — backup may be corrupted or tampered"
+        )
 
     # Step 3: Verify SQLite integrity and logical structure
     print("[INFO] Verifying SQLite integrity and structure...")
@@ -221,7 +223,9 @@ def restore_database(
             raise RuntimeError("Restored database logical consistency check failed!")
 
         print(f"\n[OK] Restored {backup_path} -> {dest_path}")
-        print(f"   Verified: {restored_info['counts']}, tables: {restored_info['tables']}")
+        print(
+            f"   Verified: {restored_info['counts']}, tables: {restored_info['tables']}"
+        )
 
     except Exception as e:
         # Attempt to restore safety copy on failure
@@ -232,7 +236,9 @@ def restore_database(
                 shutil.copy2(safety_path, dest_path)
                 print("[OK] Safety copy restored.")
             except Exception as e2:
-                print(f"[CRITICAL] Failed to restore safety copy: {e2}", file=sys.stderr)
+                print(
+                    f"[CRITICAL] Failed to restore safety copy: {e2}", file=sys.stderr
+                )
         raise
 
 

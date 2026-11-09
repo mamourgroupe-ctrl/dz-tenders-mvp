@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(railway variable *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://dz-tenders-mvp-production.up.railway.app/health)",
+      "Bash(git -C D:\\\\07_Programming\\\\vccode\\\\dz-tenders-mvp status)"
+    ]
+  }
+}

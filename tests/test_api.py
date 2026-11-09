@@ -216,7 +216,9 @@ def test_pagination_slicing_and_bounds(client):
     page2 = client.get("/api/tenders", params={"page": 2, "page_size": 2}).json()
     assert page1["pages"] == 2 and len(page1["items"]) == 2
     assert len(page2["items"]) == 2
-    assert {i["id"] for i in page1["items"]}.isdisjoint({i["id"] for i in page2["items"]})
+    assert {i["id"] for i in page1["items"]}.isdisjoint(
+        {i["id"] for i in page2["items"]}
+    )
     beyond = client.get("/api/tenders", params={"page": 99, "page_size": 2}).json()
     assert beyond["items"] == [] and beyond["total"] == 4
 
@@ -312,7 +314,11 @@ def test_statistics_from_fixture_data(client):
     summary = client.get("/api/stats/summary").json()
     assert summary["total"] == 4
     assert summary["active"] == 3  # one deadline in the past
-    assert (summary["priority1"], summary["priority2"], summary["priority3"]) == (1, 1, 2)
+    assert (summary["priority1"], summary["priority2"], summary["priority3"]) == (
+        1,
+        1,
+        2,
+    )
 
     by_wilaya = client.get("/api/stats/by-wilaya").json()
     assert by_wilaya[0] == {"wilaya": "الجزائر", "count": 2, "percentage": 50}
@@ -341,10 +347,14 @@ def test_statistics_from_fixture_data(client):
 def test_cors_allows_configured_origin_without_credentials(tmp_path):
     db = _make_db(tmp_path / "cors.db", rows=[])
     app = create_app(
-        db_path=db, cors_origins=["https://dashboard.example"], today_provider=lambda: TODAY
+        db_path=db,
+        cors_origins=["https://dashboard.example"],
+        today_provider=lambda: TODAY,
     )
     cors_client = TestClient(app, raise_server_exceptions=False)
-    allowed = cors_client.get("/api/tenders", headers={"Origin": "https://dashboard.example"})
+    allowed = cors_client.get(
+        "/api/tenders", headers={"Origin": "https://dashboard.example"}
+    )
     assert allowed.headers["access-control-allow-origin"] == "https://dashboard.example"
     assert "access-control-allow-credentials" not in allowed.headers
     denied = cors_client.get("/api/tenders", headers={"Origin": "https://evil.example"})

@@ -16,7 +16,12 @@ from datetime import datetime
 import pandas as pd
 from dotenv import load_dotenv
 
-from crawlers import ADECrawler, AlgeriaTendersCrawler, MarchesPublicsCrawler, ONACrawler
+from crawlers import (
+    ADECrawler,
+    AlgeriaTendersCrawler,
+    MarchesPublicsCrawler,
+    ONACrawler,
+)
 from storage.db import TenderStore
 from storage.delivery import (
     STATUS_EMPTY,
@@ -83,7 +88,9 @@ def save_to_excel(data, filename="tenders_results.xlsx"):
     if not data:
         return
     df = pd.DataFrame(data)
-    df_export = df.drop(columns=["matched_families", "matched_products"], errors="ignore")
+    df_export = df.drop(
+        columns=["matched_families", "matched_products"], errors="ignore"
+    )
     columns_mapping = {
         "title": "عنوان المناقصة",
         "organisation": "الهيئة / الجهة",
@@ -172,7 +179,9 @@ def main(argv=None):
         except Exception as e:
             print(f"   [!] {crawler.__class__.__name__}: {e}")
 
-    unique_tenders = list({t.get("title", ""): t for t in all_tenders if t.get("title")}.values())
+    unique_tenders = list(
+        {t.get("title", ""): t for t in all_tenders if t.get("title")}.values()
+    )
     print(f"   الاجمالي: {len(unique_tenders)} مناقصة فريدة")
 
     print("\n[2/5] الفلترة...")

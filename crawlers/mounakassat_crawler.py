@@ -47,7 +47,9 @@ class MounakassatCrawler(BaseCrawler):
         """Initialize session, storage, and resume position."""
         super().__init__(BASE_URL)
         self.progress_path = Path(progress_path)
-        resolved_start_page = start_page if start_page is not None else self._resume_page()
+        resolved_start_page = (
+            start_page if start_page is not None else self._resume_page()
+        )
         if resolved_start_page < 1:
             raise ValueError("start_page must be at least 1")
         if max_pages is not None and max_pages < 1:
@@ -56,7 +58,9 @@ class MounakassatCrawler(BaseCrawler):
         self.dry_run = dry_run
         self.max_pages = max_pages
         self.database = (
-            database if database is not None else (None if dry_run else TenderDatabase())
+            database
+            if database is not None
+            else (None if dry_run else TenderDatabase())
         )
         self.start_page = resolved_start_page
 
@@ -75,7 +79,9 @@ class MounakassatCrawler(BaseCrawler):
         phone = os.getenv("MOUN_PHONE", "").strip()
         password = os.getenv("MOUN_PASSWORD", "")
         if not phone or not password:
-            raise RuntimeError("Set MOUN_PHONE and MOUN_PASSWORD in the environment or .env")
+            raise RuntimeError(
+                "Set MOUN_PHONE and MOUN_PASSWORD in the environment or .env"
+            )
         response = self.session.post(
             urljoin(self.base_url, "/api/signin"),
             data={"telephone": phone, "password": password},
@@ -90,7 +96,10 @@ class MounakassatCrawler(BaseCrawler):
         """Fetch one authenticated listing page and reject login redirects."""
         response = self.session.get(url, timeout=30)
         response.raise_for_status()
-        if "/login" in urlsplit(response.url).path or 'id="form_signin"' in response.text:
+        if (
+            "/login" in urlsplit(response.url).path
+            or 'id="form_signin"' in response.text
+        ):
             raise RuntimeError("MounakassatDZ session expired or login was rejected")
         return response.text
 
@@ -158,7 +167,9 @@ class MounakassatCrawler(BaseCrawler):
                 "link": details_url,
                 "published_date": published_date,
                 "organisation": (
-                    organisation.get_text(" ", strip=True) if organisation else "MounakassatDZ"
+                    organisation.get_text(" ", strip=True)
+                    if organisation
+                    else "MounakassatDZ"
                 ),
                 "wilaya": wilaya_text.replace("ولاية", "", 1).strip() or None,
                 "product": category.get_text(" ", strip=True) if category else None,
@@ -231,7 +242,9 @@ def main(argv: list[str] | None = None) -> int:
     """Run the MounakassatDZ crawler CLI."""
     parser = argparse.ArgumentParser(description="Crawl MounakassatDZ announcements")
     parser.add_argument("--start-page", type=int, help="Override the saved resume page")
-    parser.add_argument("--max-pages", type=int, help="Limit the number of pages to crawl")
+    parser.add_argument(
+        "--max-pages", type=int, help="Limit the number of pages to crawl"
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",

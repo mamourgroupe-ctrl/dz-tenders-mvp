@@ -134,7 +134,9 @@ def test_main_persists_in_dry_run_while_holding_lock(tmp_path, monkeypatch):
     monkeypatch.setattr(main, "apply_filter", lambda tenders: list(tenders))
     monkeypatch.setattr(main, "build_excel_report", lambda tenders: "report.xlsx")
     monkeypatch.setattr(main, "setup_logging", lambda level: None)
-    monkeypatch.setattr(main, "build_notifier", lambda cfg: pytest.fail("Dry-Run لا يبني مُرسّلاً"))
+    monkeypatch.setattr(
+        main, "build_notifier", lambda cfg: pytest.fail("Dry-Run لا يبني مُرسّلاً")
+    )
 
     main.run()
 

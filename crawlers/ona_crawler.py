@@ -62,7 +62,9 @@ class ONACrawler(BaseCrawler):
                 if any(kw in norm_text for kw in self.keywords) and len(text) > 15:
                     href = link.get("href", "")
                     if href and not href.startswith("javascript") and href != "#":
-                        full_link = sanitize_url(urljoin(self.base_url, href)) or self.base_url
+                        full_link = (
+                            sanitize_url(urljoin(self.base_url, href)) or self.base_url
+                        )
                     else:
                         full_link = self.base_url
 
@@ -79,7 +81,9 @@ class ONACrawler(BaseCrawler):
                     )
 
         if not tenders:
-            logging.warning("لم يتم العثور على مناقصات حية من ONA، استخدام بيانات مرجعية.")
+            logging.warning(
+                "لم يتم العثور على مناقصات حية من ONA، استخدام بيانات مرجعية."
+            )
             tenders = [
                 {
                     "title": "Acquisition de tuyaux PVC assainissement CR8 DN 200/315",

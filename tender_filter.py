@@ -266,9 +266,7 @@ class TenderFilter:
             keywords = self._unique([self._normalize(k) for k in raw_keywords if k])
             entities = self._unique([self._normalize(e) for e in raw_entities if e])
             entity_tokens = self._unique(
-                token
-                for entity in entities
-                for token in self._tokenize(entity)
+                token for entity in entities for token in self._tokenize(entity)
             )
             for phrase in [*keywords, *entities, *entity_tokens]:
                 self._register_phrase(phrase)
@@ -309,16 +307,18 @@ class TenderFilter:
     def _compile_wilaya_patterns(self):
         wilayas = self.targets.get("wilayas", {})
         raw_all = wilayas.get("all_69", [])
-        self.wilaya_names = {
-            self._normalize(name): name for name in raw_all if name
-        }
+        self.wilaya_names = {self._normalize(name): name for name in raw_all if name}
         self.all_wilayas = list(self.wilaya_names)
         self.target_wilayas = [self._normalize(w) for w in wilayas.get("target", [])]
-        self.priority_wilayas = [self._normalize(w) for w in wilayas.get("priority", [])]
+        self.priority_wilayas = [
+            self._normalize(w) for w in wilayas.get("priority", [])
+        ]
 
         aliases = self.targets.get("wilaya_aliases", {})
         self.wilaya_aliases = {
-            self._normalize(key): value for key, value in aliases.items() if key and value
+            self._normalize(key): value
+            for key, value in aliases.items()
+            if key and value
         }
 
     def _normalize_wilaya_name(self, name: str) -> str:
@@ -355,7 +355,9 @@ class TenderFilter:
                 return canonical
         return None
 
-    def _flatten_value(self, value: object, *, include_mapping_keys: bool = False) -> list[str]:
+    def _flatten_value(
+        self, value: object, *, include_mapping_keys: bool = False
+    ) -> list[str]:
         """Flatten crawler values without losing nested product categories."""
         if value is None or isinstance(value, bool):
             return []
@@ -367,26 +369,58 @@ class TenderFilter:
                 if include_mapping_keys:
                     flattened.append(str(key))
                 flattened.extend(
-                    self._flatten_value(child, include_mapping_keys=include_mapping_keys)
+                    self._flatten_value(
+                        child, include_mapping_keys=include_mapping_keys
+                    )
                 )
             return flattened
         if isinstance(value, (list, tuple, set)):
             return [
                 item
                 for child in value
-                for item in self._flatten_value(child, include_mapping_keys=include_mapping_keys)
+                for item in self._flatten_value(
+                    child, include_mapping_keys=include_mapping_keys
+                )
             ]
         return [str(value)]
 
     def _tender_text(self, tender: Mapping) -> str:
         """Extract all searchable bilingual text from known crawler schemas."""
         field_aliases = (
-            "title", "title_ar", "title_fr", "titre", "objet", "object", "name",
-            "subject", "description", "description_ar", "description_fr", "content",
-            "body", "text", "details", "organisation", "organization", "institution",
-            "agency", "entity", "company", "product", "products", "product_name",
-            "product_names", "product_category", "product_code", "product_codes",
-            "product_family", "category", "categories", "keywords", "tags", "wilaya",
+            "title",
+            "title_ar",
+            "title_fr",
+            "titre",
+            "objet",
+            "object",
+            "name",
+            "subject",
+            "description",
+            "description_ar",
+            "description_fr",
+            "content",
+            "body",
+            "text",
+            "details",
+            "organisation",
+            "organization",
+            "institution",
+            "agency",
+            "entity",
+            "company",
+            "product",
+            "products",
+            "product_name",
+            "product_names",
+            "product_category",
+            "product_code",
+            "product_codes",
+            "product_family",
+            "category",
+            "categories",
+            "keywords",
+            "tags",
+            "wilaya",
             "location",
         )
         values: list[str] = []
@@ -396,7 +430,8 @@ class TenderFilter:
             values.extend(
                 self._flatten_value(
                     tender.get(field),
-                    include_mapping_keys=field in {
+                    include_mapping_keys=field
+                    in {
                         "products",
                         "categories",
                         "product_category",
@@ -418,7 +453,9 @@ class TenderFilter:
             patterns = self._compile_phrase(normalized_keyword)
         return any(pattern.search(normalized_text) for pattern in patterns)
 
-    def _count_keyword_matches(self, text: str, keywords: list[str]) -> tuple[int, list[str]]:
+    def _count_keyword_matches(
+        self, text: str, keywords: list[str]
+    ) -> tuple[int, list[str]]:
         matched = [keyword for keyword in keywords if self._has_keyword(text, keyword)]
         return len(matched), matched
 
@@ -433,7 +470,9 @@ class TenderFilter:
         matched: list[str] = []
         evidence: dict[str, list[str]] = {}
         for product_key, patterns in self.product_patterns.items():
-            phrases = [pattern for pattern in patterns if self._has_keyword(text, pattern)]
+            phrases = [
+                pattern for pattern in patterns if self._has_keyword(text, pattern)
+            ]
             if phrases:
                 matched.append(product_key)
                 evidence[product_key] = phrases
@@ -453,8 +492,12 @@ class TenderFilter:
 
         matched_families = []
         for family in self.family_patterns:
-            kw_count, kw_matches = self._count_keyword_matches(combined_text, family["keywords"])
-            tok_count, tok_matches = self._count_token_matches(text_tokens, family["entity_tokens"])
+            kw_count, kw_matches = self._count_keyword_matches(
+                combined_text, family["keywords"]
+            )
+            tok_count, tok_matches = self._count_token_matches(
+                text_tokens, family["entity_tokens"]
+            )
             score = (self.WEIGHT_KEYWORD * kw_count) + (self.WEIGHT_ENTITY * tok_count)
             if score >= self.MIN_SCORE_THRESHOLD:
                 matched_families.append(
@@ -507,7 +550,9 @@ class TenderFilter:
         if dropped:
             listed = "، ".join(f"{title} ({reason})" for reason, title in dropped[:5])
             more = f" و{len(dropped) - 5} أخرى" if len(dropped) > 5 else ""
-            logger.warning(f"تم استبعاد {len(dropped)} مناقصة منتهية أو غير مؤرّخة: {listed}{more}")
+            logger.warning(
+                f"تم استبعاد {len(dropped)} مناقصة منتهية أو غير مؤرّخة: {listed}{more}"
+            )
         results = []
         rejection_reasons: Counter[str] = Counter()
         for tender in fresh:
@@ -538,10 +583,13 @@ class TenderFilter:
             logger.info("أسباب عدم التصنيف: %s", reason_text)
         if fresh and not results:
             logger.warning(
-                "لم تُصنَّف أي مناقصة. تحقق من REQUIRE_PRODUCTS=%s؛ "
-                "أكثر سبب: %s",
+                "لم تُصنَّف أي مناقصة. تحقق من REQUIRE_PRODUCTS=%s؛ " "أكثر سبب: %s",
                 str(self.require_products).lower(),
-                rejection_reasons.most_common(1)[0][0] if rejection_reasons else "unknown",
+                (
+                    rejection_reasons.most_common(1)[0][0]
+                    if rejection_reasons
+                    else "unknown"
+                ),
             )
         return results
 

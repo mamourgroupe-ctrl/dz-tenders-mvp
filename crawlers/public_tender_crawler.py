@@ -152,8 +152,11 @@ class PublicTenderCrawler(BaseCrawler):
         anchors = item.find_all("a", href=True)
         if not title:
             title = next(
-                (anchor.get_text(" ", strip=True) for anchor in anchors
-                 if len(anchor.get_text(" ", strip=True)) > 8),
+                (
+                    anchor.get_text(" ", strip=True)
+                    for anchor in anchors
+                    if len(anchor.get_text(" ", strip=True)) > 8
+                ),
                 "",
             )
         if not title:
@@ -218,9 +221,13 @@ class PublicTenderCrawler(BaseCrawler):
         return tenders
 
 
-def run_cli(crawler_type: type[PublicTenderCrawler], argv: list[str] | None = None) -> int:
+def run_cli(
+    crawler_type: type[PublicTenderCrawler], argv: list[str] | None = None
+) -> int:
     """Run a crawler, printing JSON in dry-run mode or saving records otherwise."""
-    parser = argparse.ArgumentParser(description=f"Crawl {crawler_type.__name__} tenders.")
+    parser = argparse.ArgumentParser(
+        description=f"Crawl {crawler_type.__name__} tenders."
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -242,5 +249,7 @@ def run_cli(crawler_type: type[PublicTenderCrawler], argv: list[str] | None = No
             "relevance_score": MIN_TENDER_RELEVANCE_SCORE,
         }
         saved += database.add_tender(storage_record)
-    logger.info("%s: saved %d of %d tenders", crawler_type.__name__, saved, len(tenders))
+    logger.info(
+        "%s: saved %d of %d tenders", crawler_type.__name__, saved, len(tenders)
+    )
     return 0

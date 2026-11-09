@@ -61,5 +61,7 @@ class TelegramNotifier:
                 res = requests.post(url, data=data, files=files, timeout=25)
             return self._handle_response(res, "إرسال ملف Excel عبر تلغرام")
         except Exception as e:
-            logging.error(f"خطأ أثناء إرسال ملف Excel عبر تلغرام: {type(e).__name__}: {e}")
+            logging.error(
+                f"خطأ أثناء إرسال ملف Excel عبر تلغرام: {type(e).__name__}: {e}"
+            )
             return False

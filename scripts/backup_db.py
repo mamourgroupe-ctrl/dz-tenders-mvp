@@ -26,9 +26,7 @@ def verify_database(db_path: Path) -> dict:
     try:
         tables = [
             row[0]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
         ]
         counts = {}
         for table in ("tenders", "announcements", "users", "subscriptions"):
@@ -52,7 +50,9 @@ def verify_backup_consistency(src_info: dict, dest_info: dict) -> bool:
     """Verify backup is logically consistent with source (tables + row counts)."""
     # Compare table sets
     if src_info["tables"] != dest_info["tables"]:
-        print(f"  Table mismatch: source={src_info['tables']}, dest={dest_info['tables']}")
+        print(
+            f"  Table mismatch: source={src_info['tables']}, dest={dest_info['tables']}"
+        )
         return False
 
     # Compare row counts for known tables
@@ -94,9 +94,7 @@ def verify_sha256(file_path: Path, expected_sha256: str) -> bool:
     """Verify file SHA256 matches expected value."""
     actual_sha256 = hashlib.sha256(file_path.read_bytes()).hexdigest()
     if actual_sha256 != expected_sha256:
-        print(
-            f"  SHA256 mismatch: expected={expected_sha256}, actual={actual_sha256}"
-        )
+        print(f"  SHA256 mismatch: expected={expected_sha256}, actual={actual_sha256}")
         return False
     return True
 
@@ -163,7 +161,9 @@ def backup_uploads(uploads_dir: Path, backup_dir: Path) -> Path | None:
     manifest_path = uploads_backup.with_suffix(".manifest.json")
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
-    print(f"[OK] Uploads backup created: {uploads_backup} ({manifest['size_bytes']} bytes)")
+    print(
+        f"[OK] Uploads backup created: {uploads_backup} ({manifest['size_bytes']} bytes)"
+    )
     print(f"[OK] Manifest written: {manifest_path}")
     return uploads_backup
 
@@ -205,7 +205,10 @@ def main() -> int:
                 backup_database(src, backup_dir)
                 success_count += 1
             except Exception as e:
-                print(f"[ERROR] Failed to backup {description} ({rel_path}): {e}", file=sys.stderr)
+                print(
+                    f"[ERROR] Failed to backup {description} ({rel_path}): {e}",
+                    file=sys.stderr,
+                )
         else:
             print(f"[SKIP] {description} ({rel_path}): not found")
 

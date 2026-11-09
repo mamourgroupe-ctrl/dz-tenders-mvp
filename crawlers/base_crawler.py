@@ -2,9 +2,13 @@ import logging
 import re
 from urllib.parse import quote, urlsplit, urlunsplit
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
-_CONTROL_CHARS_RE = re.compile(r"[\x00-\x1f\x7f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060\ufeff]")
+_CONTROL_CHARS_RE = re.compile(
+    r"[\x00-\x1f\x7f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060\ufeff]"
+)
 _WHITESPACE_RE = re.compile(r"\s+", flags=re.UNICODE)
 _TRAILING_JUNK_RE = re.compile(r"[.,;]+$")
 _SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*:")

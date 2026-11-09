@@ -23,7 +23,7 @@
     "serve": "^10.0.2",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",
-    "vite": "^8.3.6"
+    "vite": "^5.4.11"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.14",
