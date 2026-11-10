@@ -152,7 +152,10 @@ def build_notifier(config: AppConfig) -> NotificationManager | None:
     Returns:
         NotificationManager جاهز، أو None عند غياب التوكن أو معرّف المحادثة.
     """
-    if not config.is_telegram_configured:
+    token = config.telegram_bot_token
+    chat_id = config.telegram_chat_id
+
+    if not token or not chat_id:
         logger.warning(
             "إعدادات Telegram غير مكتملة — تم تعطيل الإرسال "
             "(مطلوب TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID)"
@@ -160,12 +163,7 @@ def build_notifier(config: AppConfig) -> NotificationManager | None:
         return None
 
     notifier = NotificationManager()
-    notifier.register(
-        TelegramChannel(
-            config.telegram_bot_token,
-            config.telegram_chat_id,
-        )
-    )
+    notifier.register(TelegramChannel(token, chat_id))
     return notifier
 
 

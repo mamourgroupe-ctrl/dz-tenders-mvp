@@ -195,7 +195,13 @@ def deliver(
         with db_lock(target, timeout=timeout, label=label):
             store = store_factory()
             try:
-                return _deliver_locked(store, tenders, send, dry_run, on_pending)
+                return _deliver_locked(
+                    store,
+                    list(tenders),
+                    send,
+                    dry_run,
+                    on_pending,
+                )
             finally:
                 _close(store)
     except DbLockTimeout as exc:

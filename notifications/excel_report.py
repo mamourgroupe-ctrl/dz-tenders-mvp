@@ -26,7 +26,7 @@ COLUMNS_MAPPING = {
 
 def build_excel_report(
     tenders: list[dict], filename: str = "tenders_results.xlsx"
-) -> str:
+) -> str | None:
     """ينشئ ملف Excel ويعيد مساره."""
     if not tenders:
         logger.warning("لا توجد مناقصات لتصديرها")
