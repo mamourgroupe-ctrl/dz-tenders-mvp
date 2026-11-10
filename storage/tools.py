@@ -35,8 +35,12 @@ def _build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     unblock = sub.add_parser("unblock", help="فك حجب صفقات محجوبة")
-    unblock.add_argument("--all", action="store_true", help="فك حجب كل الصفقات المحجوبة")
-    unblock.add_argument("--fp", default=None, help="بصمة صفقة واحدة (SHA-256) لفك حجبها")
+    unblock.add_argument(
+        "--all", action="store_true", help="فك حجب كل الصفقات المحجوبة"
+    )
+    unblock.add_argument(
+        "--fp", default=None, help="بصمة صفقة واحدة (SHA-256) لفك حجبها"
+    )
 
     blocked = sub.add_parser("blocked", help="عرض الصفقات المحجوبة")
     blocked.add_argument("--limit", type=int, default=50, help="أقصى عدد صفوف تُعرض")
@@ -112,7 +116,9 @@ def _run_blocked(store: TenderDatabase, args: argparse.Namespace) -> int:
     print(f"{len(rows)} صفقة محجوبة:\n")
     for row in rows:
         print(f"- {row['fingerprint'][:12]}… | {row['title'][:60]}")
-        print(f"    المحاولات: {row['retry_count']} | آخر محاولة: {row['last_attempt_at']}")
+        print(
+            f"    المحاولات: {row['retry_count']} | آخر محاولة: {row['last_attempt_at']}"
+        )
         if row["last_error"]:
             print(f"    الخطأ: {row['last_error'][:120]}")
     print(f"\n{UNBLOCK_HINT}")

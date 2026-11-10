@@ -102,7 +102,9 @@ def test_baosem_dry_run_prints_json_without_creating_database(monkeypatch, capsy
         def __init__(self):
             raise AssertionError("dry-run must not initialize the database")
 
-    monkeypatch.setattr("crawlers.public_tender_crawler.TenderDatabase", UnexpectedDatabase)
+    monkeypatch.setattr(
+        "crawlers.public_tender_crawler.TenderDatabase", UnexpectedDatabase
+    )
 
     assert baosem_main(["--dry-run"]) == 0
     assert json.loads(capsys.readouterr().out) == expected

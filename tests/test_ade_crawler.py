@@ -220,7 +220,9 @@ def test_wilaya_backfill_mechanism_resolves_known_wilayas():
     """
     from tender_filter import TenderFilter
 
-    resolved = TenderFilter().find_wilaya_in_text("Fourniture de tuyaux PVC a Constantine")
+    resolved = TenderFilter().find_wilaya_in_text(
+        "Fourniture de tuyaux PVC a Constantine"
+    )
 
     assert resolved == "قسنطينة"
 

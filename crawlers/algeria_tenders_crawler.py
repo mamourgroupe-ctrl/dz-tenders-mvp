@@ -48,11 +48,15 @@ class AlgeriaTendersCrawler(BaseCrawler):
         """إزالة التشكيل والنبرات (Accents) لضمان مطابقة الكلمات الفرنسية والعربية"""
         if not text:
             return ""
-        text = unicodedata.normalize("NFD", text).encode("ascii", "ignore").decode("utf-8")
+        text = (
+            unicodedata.normalize("NFD", text).encode("ascii", "ignore").decode("utf-8")
+        )
         return text.lower().strip()
 
     def fetch_page(self, url):
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
         try:
             response = requests.get(url, headers=headers, timeout=15, verify=False)
             response.encoding = "utf-8"
@@ -82,7 +86,9 @@ class AlgeriaTendersCrawler(BaseCrawler):
             # اشتراط طول مناسب للنص ليكون عنوان صفقة حقيقي
             if 20 <= len(text) <= 250 and text not in seen and self.is_relevant(text):
                 seen.add(text)
-                href = elem.get("href") if elem.name == "a" else elem.find("a", href=True)
+                href = (
+                    elem.get("href") if elem.name == "a" else elem.find("a", href=True)
+                )
                 link = (
                     href["href"]
                     if isinstance(href, dict) and "href" in href

@@ -83,7 +83,9 @@ class ADECrawler(BaseCrawler):
 
     def fetch_page(self, url):
         try:
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
             response = requests.get(url, headers=headers, timeout=15)
             response.raise_for_status()
             # العناوين الفرنسية فيها ’ و é، وتخمين requests للترميز ينتج نصاً مشوهاً.
@@ -124,7 +126,11 @@ class ADECrawler(BaseCrawler):
             title = self._card_title(card)
             anchor = card.select_one("h3 a[href]") or card.find("a", href=True)
 
-            link = sanitize_url(urljoin(self.base_url, anchor["href"])) if anchor else self.base_url
+            link = (
+                sanitize_url(urljoin(self.base_url, anchor["href"]))
+                if anchor
+                else self.base_url
+            )
             if not link:
                 continue
 
@@ -195,7 +201,9 @@ class ADECrawler(BaseCrawler):
             return date(int(match.group(1)), 1, 1)
         return None
 
-    def _published_date(self, slug: str, title: str, detail_url: str | None) -> date | None:
+    def _published_date(
+        self, slug: str, title: str, detail_url: str | None
+    ) -> date | None:
         """تاريخ النشر من الرابط، ثم التفاصيل."""
         year = self._year_from_reference(slug, title)
         if year:

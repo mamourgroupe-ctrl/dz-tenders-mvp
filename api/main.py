@@ -35,7 +35,11 @@ from api.models import (
     TimelinePoint,
     WilayaPoint,
 )
-from api.repository import DatabaseUnavailableError, ReadOnlyTenderRepository, TenderFilters
+from api.repository import (
+    DatabaseUnavailableError,
+    ReadOnlyTenderRepository,
+    TenderFilters,
+)
 from storage.paths import resolve_db_path
 
 logger = logging.getLogger(__name__)
@@ -60,7 +64,9 @@ class ApiError(Exception):
         self.details = details or []
 
 
-def _error_response(status_code: int, code: str, message: str, details=None) -> JSONResponse:
+def _error_response(
+    status_code: int, code: str, message: str, details=None
+) -> JSONResponse:
     body = {"error": {"code": code, "message": message, "details": details or []}}
     return JSONResponse(status_code=status_code, content=body)
 
@@ -87,7 +93,9 @@ def create_app(
     """
     repository = ReadOnlyTenderRepository(resolve_db_path(db_path))
     origins = (
-        cors_origins if cors_origins is not None else _parse_cors_origins(os.getenv("CORS_ORIGINS"))
+        cors_origins
+        if cors_origins is not None
+        else _parse_cors_origins(os.getenv("CORS_ORIGINS"))
     )
 
     app = FastAPI(title="DZ Tenders API", version="1.0.0", docs_url="/api/docs")
@@ -102,16 +110,22 @@ def create_app(
 
     @app.exception_handler(ApiError)
     async def _api_error_handler(_request: Request, exc: ApiError) -> JSONResponse:
-        return _error_response(exc.status_code, exc.code, exc.message, details=exc.details)
+        return _error_response(
+            exc.status_code, exc.code, exc.message, details=exc.details
+        )
 
     @app.exception_handler(DatabaseUnavailableError)
-    async def _db_error_handler(_request: Request, _exc: DatabaseUnavailableError) -> JSONResponse:
+    async def _db_error_handler(
+        _request: Request, _exc: DatabaseUnavailableError
+    ) -> JSONResponse:
         return _error_response(
             503, "database_unavailable", "Tender data is temporarily unavailable."
         )
 
     @app.exception_handler(RequestValidationError)
-    async def _validation_handler(_request: Request, exc: RequestValidationError) -> JSONResponse:
+    async def _validation_handler(
+        _request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
         details = [
             {"field": ".".join(str(part) for part in err["loc"]), "issue": err["msg"]}
             for err in exc.errors()
@@ -121,10 +135,14 @@ def create_app(
         )
 
     @app.exception_handler(StarletteHTTPException)
-    async def _http_error_handler(_request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    async def _http_error_handler(
+        _request: Request, exc: StarletteHTTPException
+    ) -> JSONResponse:
         code = "not_found" if exc.status_code == 404 else "http_error"
         message = (
-            "The requested resource was not found." if exc.status_code == 404 else "Request failed."
+            "The requested resource was not found."
+            if exc.status_code == 404
+            else "Request failed."
         )
         return _error_response(exc.status_code, code, message)
 
@@ -137,13 +155,19 @@ def create_app(
         try:
             count = repository.count_tenders()
         except DatabaseUnavailableError:
-            body = HealthResponse(status="degraded", database="unavailable", tenders=None)
+            body = HealthResponse(
+                status="degraded", database="unavailable", tenders=None
+            )
             return JSONResponse(status_code=503, content=body.model_dump())
         body = HealthResponse(status="ok", database="available", tenders=count)
         return JSONResponse(status_code=200, content=body.model_dump())
 
-    app.add_api_route("/health", _health, methods=["GET"], response_model=HealthResponse)
-    app.add_api_route("/api/health", _health, methods=["GET"], response_model=HealthResponse)
+    app.add_api_route(
+        "/health", _health, methods=["GET"], response_model=HealthResponse
+    )
+    app.add_api_route(
+        "/api/health", _health, methods=["GET"], response_model=HealthResponse
+    )
 
     router = APIRouter(prefix="/api")
 
@@ -164,7 +188,9 @@ def create_app(
                 422,
                 "validation_error",
                 "date_from must be on or before date_to.",
-                details=[{"field": "date_from", "issue": "must be on or before date_to"}],
+                details=[
+                    {"field": "date_from", "issue": "must be on or before date_to"}
+                ],
             )
         filters = TenderFilters(
             search=search,
@@ -223,7 +249,9 @@ def create_app(
     @router.get("/stats/timeline", response_model=list[TimelinePoint])
     async def stats_timeline() -> list[TimelinePoint]:
         """Return daily first-seen counts for the last 30 days."""
-        return [TimelinePoint(**point) for point in repository.timeline(today_provider())]
+        return [
+            TimelinePoint(**point) for point in repository.timeline(today_provider())
+        ]
 
     app.include_router(router)
     return app

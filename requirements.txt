@@ -4,8 +4,9 @@ beautifulsoup4>=4.12.0
 lxml>=4.9.0
 pandas>=2.0.0
 openpyxl>=3.1.0
-fastapi>=0.115,<0.116
+fastapi>=0.116,<0.117
 uvicorn[standard]>=0.30,<0.35
+starlette>=0.47.2
 playwright>=1.40.0  # required by crawlers/marches_publics_auth_crawler.py
 
 # --- Public platform (webapp/) ---

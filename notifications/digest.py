@@ -54,14 +54,20 @@ def build_digest_html(tenders, run_date=None):
     p3 = len(groups["P3"])
 
     parts = []
-    parts.append('<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">')
+    parts.append(
+        '<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">'
+    )
     parts.append(f"<title>DZ Tenders Digest {run_date}</title>")
     parts.append("<style>")
-    parts.append("body{font-family:Tahoma,Arial,sans-serif;background:#f5f5f5;padding:20px;}")
+    parts.append(
+        "body{font-family:Tahoma,Arial,sans-serif;background:#f5f5f5;padding:20px;}"
+    )
     parts.append(
         ".container{max-width:900px;margin:auto;background:white;padding:20px;border-radius:8px;}"
     )
-    parts.append("h1{color:#1a5490;border-bottom:3px solid #1a5490;padding-bottom:10px;}")
+    parts.append(
+        "h1{color:#1a5490;border-bottom:3px solid #1a5490;padding-bottom:10px;}"
+    )
     parts.append("h2{color:#2c7fb8;margin-top:30px;}")
     parts.append(".stats{display:flex;gap:20px;margin:20px 0;}")
     parts.append(
@@ -72,17 +78,31 @@ def build_digest_html(tenders, run_date=None):
     parts.append("th{background:#1a5490;color:white;padding:10px;text-align:right;}")
     parts.append("td{padding:10px;border-bottom:1px solid #eee;}")
     parts.append("a{color:#1a5490;text-decoration:none;}")
-    parts.append(".footer{margin-top:30px;color:#666;font-size:12px;text-align:center;}")
+    parts.append(
+        ".footer{margin-top:30px;color:#666;font-size:12px;text-align:center;}"
+    )
     parts.append("</style></head><body><div class='container'>")
     parts.append(f"<h1>Daily Digest - {run_date}</h1>")
     parts.append("<div class='stats'>")
-    parts.append(f"<div class='stat'><div class='stat-num'>{total}</div><div>Total</div></div>")
-    parts.append(f"<div class='stat'><div class='stat-num'>{p1}</div><div>P1</div></div>")
-    parts.append(f"<div class='stat'><div class='stat-num'>{p2}</div><div>P2</div></div>")
-    parts.append(f"<div class='stat'><div class='stat-num'>{p3}</div><div>P3</div></div>")
+    parts.append(
+        f"<div class='stat'><div class='stat-num'>{total}</div><div>Total</div></div>"
+    )
+    parts.append(
+        f"<div class='stat'><div class='stat-num'>{p1}</div><div>P1</div></div>"
+    )
+    parts.append(
+        f"<div class='stat'><div class='stat-num'>{p2}</div><div>P2</div></div>"
+    )
+    parts.append(
+        f"<div class='stat'><div class='stat-num'>{p3}</div><div>P3</div></div>"
+    )
     parts.append("</div>")
 
-    for tier, label in [("P1", "Priority 1"), ("P2", "Priority 2"), ("P3", "Priority 3")]:
+    for tier, label in [
+        ("P1", "Priority 1"),
+        ("P2", "Priority 2"),
+        ("P3", "Priority 3"),
+    ]:
         if not groups[tier]:
             continue
         parts.append(f"<h2>{label} ({len(groups[tier])})</h2>")

@@ -62,7 +62,9 @@ def _columns(db_path: str) -> set[str]:
 def _row(db_path: str, fingerprint: str) -> dict:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    found = conn.execute("SELECT * FROM tenders WHERE fingerprint = ?", (fingerprint,)).fetchone()
+    found = conn.execute(
+        "SELECT * FROM tenders WHERE fingerprint = ?", (fingerprint,)
+    ).fetchone()
     conn.close()
     return dict(found) if found else {}
 
@@ -362,7 +364,9 @@ def test_fresh_database_has_delivery_columns(tmp_path):
     db_path = str(tmp_path / "fresh.db")
     TenderDatabase(db_path=db_path)
 
-    assert {"retry_count", "blocked", "last_error", "last_attempt_at"} <= _columns(db_path)
+    assert {"retry_count", "blocked", "last_error", "last_attempt_at"} <= _columns(
+        db_path
+    )
     assert TenderStore(db_path=db_path).count() == 0
 
 
@@ -478,7 +482,9 @@ def test_cli_defaults_to_app_config_db_path(tmp_path, monkeypatch, capsys):
     assert db_path in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("column", ["retry_count", "blocked", "last_error", "last_attempt_at"])
+@pytest.mark.parametrize(
+    "column", ["retry_count", "blocked", "last_error", "last_attempt_at"]
+)
 def test_declared_migration_columns_cover_new_schema(column):
     """كل عمود في المخطط الجديد مذكور في عبارات الترحيل."""
     from storage.database import MIGRATION_COLUMNS

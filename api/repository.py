@@ -15,7 +15,12 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
-from api.mapping import PRODUCT_MARKERS, parse_stored_date, priority_for_score, products_from_text
+from api.mapping import (
+    PRODUCT_MARKERS,
+    parse_stored_date,
+    priority_for_score,
+    products_from_text,
+)
 from api.models import ProductCode
 
 REQUIRED_COLUMNS = {
@@ -160,7 +165,9 @@ class ReadOnlyTenderRepository:
             if predicate:
                 where += (" AND " if where else " WHERE ") + f"({predicate})"
             total = int(
-                conn.execute(f"SELECT COUNT(*) AS n FROM tenders{where}", params).fetchone()["n"]
+                conn.execute(
+                    f"SELECT COUNT(*) AS n FROM tenders{where}", params
+                ).fetchone()["n"]
             )
             rows = conn.execute(
                 f"SELECT {self._select_columns(conn)} FROM tenders{where}"
@@ -225,7 +232,9 @@ class ReadOnlyTenderRepository:
             predicate = self._active_predicate(conn)
             where = f" WHERE {predicate}" if predicate else ""
             total = int(
-                conn.execute(f"SELECT COUNT(*) AS n FROM tenders{where}").fetchone()["n"]
+                conn.execute(f"SELECT COUNT(*) AS n FROM tenders{where}").fetchone()[
+                    "n"
+                ]
             )
             conditions = [predicate] if predicate else []
             conditions.append("wilaya IS NOT NULL AND wilaya != ''")

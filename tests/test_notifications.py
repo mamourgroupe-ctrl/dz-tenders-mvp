@@ -20,7 +20,9 @@ def test_notifier_logs_unauthorized_status(monkeypatch, caplog):
 
     def fake_post(*args, **kwargs):
         captured["url"] = args[0] if args else kwargs.get("url")
-        return FakeResponse(401, '{"ok":false,"error_code":401,"description":"Unauthorized"}')
+        return FakeResponse(
+            401, '{"ok":false,"error_code":401,"description":"Unauthorized"}'
+        )
 
     monkeypatch.setattr("telegram_notifier.requests.post", fake_post)
 

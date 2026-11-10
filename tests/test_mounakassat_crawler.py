@@ -68,7 +68,9 @@ def test_login_uses_site_form_fields_and_session(monkeypatch, tmp_path):
     monkeypatch.setenv("MOUN_PHONE", "0790000000")
     monkeypatch.setenv("MOUN_PASSWORD", "test-password")
     session = FakeSession()
-    crawler = MounakassatCrawler(dry_run=True, session=session, progress_path=tmp_path / "p.json")
+    crawler = MounakassatCrawler(
+        dry_run=True, session=session, progress_path=tmp_path / "p.json"
+    )
 
     crawler.login()
 
@@ -85,7 +87,9 @@ def test_login_requires_both_environment_variables(monkeypatch, tmp_path):
     monkeypatch.delenv("MOUN_PHONE", raising=False)
     monkeypatch.delenv("MOUN_PASSWORD", raising=False)
     session = FakeSession()
-    crawler = MounakassatCrawler(dry_run=True, session=session, progress_path=tmp_path / "p.json")
+    crawler = MounakassatCrawler(
+        dry_run=True, session=session, progress_path=tmp_path / "p.json"
+    )
 
     with pytest.raises(RuntimeError, match="MOUN_PHONE and MOUN_PASSWORD"):
         crawler.login()
@@ -101,7 +105,9 @@ def test_parse_tender_card_extracts_fields_and_absolute_details_url(tmp_path):
 
     assert len(tenders) == 1
     assert tenders[0]["title"] == "تنفيذ أشغال المياه"
-    assert tenders[0]["details_url"] == ("https://mounakassatdz.com/details/abc123-title")
+    assert tenders[0]["details_url"] == (
+        "https://mounakassatdz.com/details/abc123-title"
+    )
     assert tenders[0]["published_date"] == "2026-11-03"
     assert tenders[0]["wilaya"] == "باتنة"
     assert tenders[0]["source"] == "MOUNAKASSATDZ"

@@ -37,7 +37,9 @@ def _tender(**overrides) -> dict:
 
 
 def test_past_deadline_is_dropped():
-    kept, dropped = TenderFilter().filter_fresh([_tender(deadline="2026-09-01")], today=TODAY)
+    kept, dropped = TenderFilter().filter_fresh(
+        [_tender(deadline="2026-09-01")], today=TODAY
+    )
     assert kept == []
     assert dropped[0][0] == "deadline_passed"
 
@@ -51,13 +53,17 @@ def test_future_deadline_is_kept():
 
 
 def test_unknown_deadline_with_old_published_date_is_dropped():
-    kept, dropped = TenderFilter().filter_fresh([_tender(published_date="2023-01-01")], today=TODAY)
+    kept, dropped = TenderFilter().filter_fresh(
+        [_tender(published_date="2023-01-01")], today=TODAY
+    )
     assert kept == []
     assert dropped[0][0] == "published_stale"
 
 
 def test_unknown_deadline_with_recent_published_date_is_kept():
-    kept, dropped = TenderFilter().filter_fresh([_tender(published_date="2026-09-20")], today=TODAY)
+    kept, dropped = TenderFilter().filter_fresh(
+        [_tender(published_date="2026-09-20")], today=TODAY
+    )
     assert len(kept) == 1
     assert dropped == []
 
@@ -65,7 +71,9 @@ def test_unknown_deadline_with_recent_published_date_is_kept():
 def test_window_boundary_is_inclusive():
     on_edge = _tender(published_date="2026-07-06")
     just_past = _tender(published_date="2026-07-05")
-    kept, dropped = TenderFilter().filter_fresh([on_edge, just_past], today=TODAY, window_days=90)
+    kept, dropped = TenderFilter().filter_fresh(
+        [on_edge, just_past], today=TODAY, window_days=90
+    )
     assert len(kept) == 1
     assert dropped[0][0] == "published_stale"
 
@@ -91,7 +99,10 @@ def test_real_ade_capture_yields_zero_surviving():
     kept, dropped = TenderFilter().filter_fresh(tenders, today=TODAY)
     assert len(tenders) == 4
     assert kept == []
-    assert {reason for reason, _ in dropped} == {"published_stale", "undated_dated_source"}
+    assert {reason for reason, _ in dropped} == {
+        "published_stale",
+        "undated_dated_source",
+    }
 
 
 def test_undated_source_without_the_key_is_kept():
@@ -114,7 +125,9 @@ def test_sample_rows_bypass_freshness():
 
 def test_window_is_configurable_via_env(monkeypatch):
     monkeypatch.setenv("FRESHNESS_WINDOW_DAYS", "10")
-    kept, _ = TenderFilter().filter_fresh([_tender(published_date="2026-09-20")], today=TODAY)
+    kept, _ = TenderFilter().filter_fresh(
+        [_tender(published_date="2026-09-20")], today=TODAY
+    )
     assert kept == []
 
 
@@ -127,6 +140,8 @@ def test_env_garbage_falls_back_to_default(monkeypatch):
 
 def test_freshness_kill_switch_disables_everything(monkeypatch):
     monkeypatch.setenv("FRESHNESS_ENABLED", "false")
-    kept, dropped = TenderFilter().filter_fresh([_tender(deadline="2020-01-01")], today=TODAY)
+    kept, dropped = TenderFilter().filter_fresh(
+        [_tender(deadline="2020-01-01")], today=TODAY
+    )
     assert len(kept) == 1
     assert dropped == []

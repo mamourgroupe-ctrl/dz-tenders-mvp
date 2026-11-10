@@ -8,7 +8,12 @@ from config import AppConfig
 from crawlers.algeria_tenders_crawler import AlgeriaTendersCrawler
 from crawlers.marches_publics_crawler import MarchesPublicsCrawler
 from crawlers.ona_crawler import ONACrawler
-from main import apply_filter, build_notifier, build_summary_message, drop_reference_data
+from main import (
+    apply_filter,
+    build_notifier,
+    build_summary_message,
+    drop_reference_data,
+)
 
 LIVE_TENDER = {
     "title": "مناقصة توريد أنابيب PEHD",
@@ -190,14 +195,18 @@ def test_build_notifier_returns_none_without_token():
 
 def test_build_notifier_returns_none_without_chat_id():
     """غياب معرّف المحادثة يعيد None أيضاً."""
-    config = AppConfig(dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id=None)
+    config = AppConfig(
+        dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id=None
+    )
 
     assert build_notifier(config) is None
 
 
 def test_build_notifier_returns_manager_when_configured():
     """الإعداد الكامل يعيد مُرسّلاً مسجّلاً عليه قناة تلغرام."""
-    config = AppConfig(dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id="42")
+    config = AppConfig(
+        dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id="42"
+    )
 
     notifier = build_notifier(config)
 
@@ -249,7 +258,9 @@ def test_run_persists_tenders_in_dry_run(monkeypatch):
     """Dry-Run يحفظ الصفقات ولا يبلّغ ولا يزيد عدّاد المحاولات."""
     config = AppConfig(dry_run=True)
     _patch_run(monkeypatch, config)
-    monkeypatch.setattr(main, "build_notifier", lambda cfg: pytest.fail("Dry-Run لا يبني مُرسّلاً"))
+    monkeypatch.setattr(
+        main, "build_notifier", lambda cfg: pytest.fail("Dry-Run لا يبني مُرسّلاً")
+    )
 
     main.run()
 
@@ -262,7 +273,9 @@ def test_run_persists_tenders_in_dry_run(monkeypatch):
 
 def test_run_does_not_mark_sent_when_all_channels_fail(monkeypatch):
     """فشل كل القنوات = محاولة فاشلة لكل صفقة، بلا وسم."""
-    config = AppConfig(dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id="42")
+    config = AppConfig(
+        dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id="42"
+    )
     _patch_run(monkeypatch, config)
     monkeypatch.setattr(
         main,
@@ -285,7 +298,9 @@ def test_run_does_not_mark_sent_when_all_channels_fail(monkeypatch):
 
 def test_run_marks_sent_when_one_channel_succeeds(monkeypatch):
     """نجاح قناة واحدة يكفي للوسم، ويُقرأ الناتج بـ .get لتحمّل channel/error."""
-    config = AppConfig(dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id="42")
+    config = AppConfig(
+        dry_run=False, telegram_bot_token="123:ABC", telegram_chat_id="42"
+    )
     _patch_run(monkeypatch, config)
     monkeypatch.setattr(
         main,
@@ -310,7 +325,11 @@ def test_smart_scraper_skips_blocked_tender(tmp_path, monkeypatch, capsys):
     from run_smart_scraper import main as smart_main
     from storage.db import TenderStore
 
-    blocked = {**LIVE_TENDER, "title": "مناقصة محجوبة", "link": "https://ade.dz/blocked"}
+    blocked = {
+        **LIVE_TENDER,
+        "title": "مناقصة محجوبة",
+        "link": "https://ade.dz/blocked",
+    }
     fresh = {**LIVE_TENDER, "title": "مناقصة حية", "link": "https://ade.dz/fresh"}
 
     store = TenderStore(db_path=str(tmp_path / "smart.db"))
@@ -339,12 +358,20 @@ def test_smart_scraper_skips_blocked_tender(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(
         "run_smart_scraper.SourcesLoader",
         lambda: type(
-            "L", (), {"crawlable": lambda self, priority=None: [{"tp": "https://x.dz", "ar": "X"}]}
+            "L",
+            (),
+            {
+                "crawlable": lambda self, priority=None: [
+                    {"tp": "https://x.dz", "ar": "X"}
+                ]
+            },
         )(),
     )
     monkeypatch.setattr(
         "run_smart_scraper.TenderFilter",
-        lambda: type("F", (), {"filter_tenders": lambda self, tenders: list(tenders)})(),
+        lambda: type(
+            "F", (), {"filter_tenders": lambda self, tenders: list(tenders)}
+        )(),
     )
     monkeypatch.setattr("run_smart_scraper.SmartCrawler", FakeCrawler)
     monkeypatch.setattr("run_smart_scraper.TelegramNotifier", FakeNotifier)
@@ -424,7 +451,9 @@ def test_build_summary_message_missing_title_fallback():
     """Tender without title -> fallback shown."""
     tenders = [{}]
     result = build_summary_message(tenders)
-    assert "\u0628\u062f\u0648\u0646 \u0639\u0646\u0648\u0627\u0646" in result  # "no title"
+    assert (
+        "\u0628\u062f\u0648\u0646 \u0639\u0646\u0648\u0627\u0646" in result
+    )  # "no title"
 
 
 def test_build_summary_message_max_five_cards():

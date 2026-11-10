@@ -60,4 +60,6 @@ load_ai_providers_env()
 
 if __name__ == "__main__":
     found = _parse_env_file(AI_PROVIDERS_ENV)
-    print(f"file={AI_PROVIDERS_ENV} exists={AI_PROVIDERS_ENV.exists()} keys={sorted(found)}")
+    print(
+        f"file={AI_PROVIDERS_ENV} exists={AI_PROVIDERS_ENV.exists()} keys={sorted(found)}"
+    )

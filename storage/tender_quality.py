@@ -81,11 +81,15 @@ def is_valid_tender(tender: dict[str, Any]) -> bool:
     if score < MIN_TENDER_RELEVANCE_SCORE:
         return False
 
-    evidence = _has_deadline(tender.get("deadline")) or any(
-        _has_value(tender.get(field))
-        for field in ("reference", "tender_number", "reference_number")
-    ) or any(
-        _has_value(tender.get(field))
-        for field in ("contracting_authority", "organisation", "organization")
+    evidence = (
+        _has_deadline(tender.get("deadline"))
+        or any(
+            _has_value(tender.get(field))
+            for field in ("reference", "tender_number", "reference_number")
+        )
+        or any(
+            _has_value(tender.get(field))
+            for field in ("contracting_authority", "organisation", "organization")
+        )
     )
     return evidence

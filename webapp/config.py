@@ -8,6 +8,7 @@ usable default: production boots only with explicit configuration.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -95,6 +96,11 @@ class Settings:
         return self.app_env.lower() == "production"
 
     @property
+    def is_staging_or_production(self) -> bool:
+        """Whether the app runs in staging or production (requires secret validation)."""
+        return self.app_env.lower() in ("staging", "production")
+
+    @property
     def secure_cookies(self) -> bool:
         """Whether cookies must carry the ``Secure`` flag."""
         if self.cookie_secure is not None:
@@ -123,7 +129,7 @@ class Settings:
             load_dotenv(override=False)
 
         cookie_secure_raw = os.getenv("APP_COOKIE_SECURE", "").strip()
-        return cls(
+        settings = cls(
             app_env=os.getenv("APP_ENV", "development"),
             database_url=_default_database_url(),
             base_url=os.getenv("APP_BASE_URL", ""),
@@ -153,6 +159,53 @@ class Settings:
             contact_phone=os.getenv("APP_CONTACT_PHONE", ""),
             trust_proxy=parse_bool(os.getenv("APP_TRUST_PROXY"), default=False),
         )
+
+        # Validate required secrets in staging and production
+        if settings.is_staging_or_production:
+            _validate_required_secrets(settings.app_env)
+            _validate_secret_formats()
+
+        return settings
+
+
+def _validate_required_secrets(app_env: str) -> None:
+    """Fail fast if required secrets are missing in staging/production."""
+    REQUIRED_IN_PRODUCTION = (
+        "TELEGRAM_BOT_TOKEN",
+        "TELEGRAM_CHAT_ID",
+        "SMTP_HOST",
+        "SMTP_PORT",
+        "SMTP_USER",
+        "SMTP_PASSWORD",
+        "MOUN_PHONE",
+        "MOUN_PASSWORD",
+    )
+    missing = [k for k in REQUIRED_IN_PRODUCTION if not os.getenv(k)]
+    if missing:
+        raise RuntimeError(
+            f"Missing required secrets for {app_env}: {', '.join(missing)}. "
+            f"Set these environment variables before starting."
+        )
+
+
+def _validate_secret_formats() -> None:
+    """Basic format validation for critical secrets (without logging values)."""
+    # Telegram bot token format: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+    telegram_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    if telegram_token and not re.match(r"^\d+:[A-Za-z0-9_-]{35}$", telegram_token):
+        raise RuntimeError(
+            "TELEGRAM_BOT_TOKEN format invalid (expected '123456:ABC...')"
+        )
+
+    # SMTP port should be numeric
+    smtp_port = os.getenv("SMTP_PORT", "")
+    if smtp_port and not smtp_port.isdigit():
+        raise RuntimeError("SMTP_PORT must be a numeric port number")
+
+    # Phone numbers should not be empty if set
+    moun_phone = os.getenv("MOUN_PHONE", "")
+    if moun_phone and len(moun_phone.strip()) < 8:
+        raise RuntimeError("MOUN_PHONE appears too short")
 
 
 __all__ = ["DEFAULT_DB_RELATIVE", "REPO_ROOT", "Settings"]

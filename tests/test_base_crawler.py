@@ -26,7 +26,12 @@ def test_sanitize_url_cleans_and_encodes(raw, expected):
 
 @pytest.mark.parametrize(
     "raw",
-    ["javascript:void(0)", "JavaScript:alert(1)", "data:text/html;base64,AAA", "mailto:a@b.dz"],
+    [
+        "javascript:void(0)",
+        "JavaScript:alert(1)",
+        "data:text/html;base64,AAA",
+        "mailto:a@b.dz",
+    ],
 )
 def test_sanitize_url_blocks_unsupported_schemes(raw):
     assert sanitize_url(raw) == ""

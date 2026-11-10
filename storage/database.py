@@ -54,6 +54,8 @@ class TenderDatabase:
     def _connect(self):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA busy_timeout = 5000")
         return conn
 
     def _init_db(self):
@@ -119,7 +121,9 @@ class TenderDatabase:
 
         first_time = "retry_count" not in columns
 
-        for name, statement in zip(MIGRATION_COLUMN_NAMES, MIGRATION_COLUMNS, strict=True):
+        for name, statement in zip(
+            MIGRATION_COLUMN_NAMES, MIGRATION_COLUMNS, strict=True
+        ):
             if name in columns:
                 continue
             try:
@@ -129,7 +133,9 @@ class TenderDatabase:
                 # Ø§Ù„Ø¹Ù…ÙˆØ¯ Ù†Ø§Ù‚ØµØ§Ù‹ ÙØªÙ†Ø§Ù„ duplicate column.
                 if "duplicate column name" not in str(exc).lower():
                     raise
-                logger.debug(f"Ø§Ù„Ø¹Ù…ÙˆØ¯ {name} Ø£ÙØ¶ÙŠÙ Ø¨Ø¹Ù…Ù„ÙŠØ© Ù…ÙˆØ§Ø²ÙŠØ©: {exc}")
+                logger.debug(
+                    f"Ø§Ù„Ø¹Ù…ÙˆØ¯ {name} Ø£ÙØ¶ÙŠÙ Ø¨Ø¹Ù…Ù„ÙŠØ© Ù…ÙˆØ§Ø²ÙŠØ©: {exc}"
+                )
             columns = self._table_columns(conn)
 
         conn.execute("CREATE INDEX IF NOT EXISTS idx_blocked ON tenders(blocked)")
@@ -187,7 +193,9 @@ class TenderDatabase:
         for family in families:
             family_id = str(family.get("id", "")).strip()
             if not family_id:
-                logger.warning("عائلة تصنيف بلا معرّف id تم تجاوزها (بصمة %s): %s", fp[:12], family)
+                logger.warning(
+                    "عائلة تصنيف بلا معرّف id تم تجاوزها (بصمة %s): %s", fp[:12], family
+                )
                 continue
             ids.append(family_id)
         return ",".join(ids)
@@ -283,7 +291,9 @@ class TenderDatabase:
         """Ù‡Ù„ ØªÙ… Ø¥Ø´Ø¹Ø§Ø± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ù‡Ø°Ù‡ Ø§Ù„Ù…Ù†Ø§Ù‚ØµØ©ØŸ"""
         fp = self._fingerprint(tender)
         with self._connect() as conn:
-            cur = conn.execute("SELECT notified FROM tenders WHERE fingerprint = ?", (fp,))
+            cur = conn.execute(
+                "SELECT notified FROM tenders WHERE fingerprint = ?", (fp,)
+            )
             row = cur.fetchone()
             return bool(row and row["notified"])
 
@@ -323,7 +333,9 @@ class TenderDatabase:
             ).fetchone()
             attempts = int(row["retry_count"]) if row else 0
             if attempts >= MAX_DELIVERY_ATTEMPTS:
-                conn.execute("UPDATE tenders SET blocked = 1 WHERE fingerprint = ?", (fp,))
+                conn.execute(
+                    "UPDATE tenders SET blocked = 1 WHERE fingerprint = ?", (fp,)
+                )
                 logger.warning(
                     "ðŸ”’ Ø­ÙØ¬Ø¨Øª Ø§Ù„ØµÙÙ‚Ø© Ø¨Ø¹Ø¯ %d Ù…Ø­Ø§ÙˆÙ„Ø§Øª ÙØ§Ø´Ù„Ø© (Ø¨ØµÙ…Ø© %s): %s",
                     attempts,
@@ -407,13 +419,11 @@ class TenderDatabase:
                 (f"{today}%",),
             ).fetchone()[0]
 
-            by_wilaya = conn.execute(
-                """
+            by_wilaya = conn.execute("""
                 SELECT wilaya, COUNT(*) as count FROM tenders
                 WHERE wilaya IS NOT NULL AND wilaya != '' AND is_noise = 0
                 GROUP BY wilaya ORDER BY count DESC LIMIT 10
-                """
-            ).fetchall()
+                """).fetchall()
 
             return {
                 "total": total,

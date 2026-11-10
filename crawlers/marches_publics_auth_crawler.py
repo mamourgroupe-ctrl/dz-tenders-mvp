@@ -57,10 +57,15 @@ class MarchesPublicsAuthCrawler(BaseCrawler):
             )
 
         self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(channel="msedge", headless=False)
+        self._browser = self._playwright.chromium.launch(
+            channel="msedge", headless=False
+        )
         self._context = self._browser.new_context(
             storage_state=str(self.state_path),
-            ignore_https_errors=True,
+            # ignore_https_errors=False (default) — enforce TLS certificate validation
+            # for data integrity when scraping the official government portal.
+            # If certificate issues arise, use a custom CA bundle via certifi.where()
+            # instead of disabling verification.
             viewport={"width": 1400, "height": 900},
         )
         # Reuse the SAME page for all navigations (avoids connection churn)
@@ -130,8 +135,14 @@ class MarchesPublicsAuthCrawler(BaseCrawler):
             service = row.get("serviceContractant") or {}
 
             uuid = row.get("uuid") or ""
-            reference = marche.get("referenceInterne") or row.get("referenceInterne") or ""
-            title = marche.get("objetMarche") or self._strip_html(row.get("description", "")) or ""
+            reference = (
+                marche.get("referenceInterne") or row.get("referenceInterne") or ""
+            )
+            title = (
+                marche.get("objetMarche")
+                or self._strip_html(row.get("description", ""))
+                or ""
+            )
             if not title:
                 continue
 

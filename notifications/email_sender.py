@@ -39,7 +39,9 @@ def send_digest_email(
     from_addr = os.getenv("SMTP_FROM") or user
 
     if to_addrs is None:
-        to_addrs = [a.strip() for a in os.getenv("DIGEST_TO", "").split(",") if a.strip()]
+        to_addrs = [
+            a.strip() for a in os.getenv("DIGEST_TO", "").split(",") if a.strip()
+        ]
 
     if not to_addrs:
         logger.warning("No recipients; skipping")

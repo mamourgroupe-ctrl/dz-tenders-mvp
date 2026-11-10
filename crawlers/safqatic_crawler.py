@@ -46,7 +46,9 @@ class SafqaticCrawler(BaseCrawler):
         from playwright.sync_api import sync_playwright
 
         self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(channel="msedge", headless=True)
+        self._browser = self._playwright.chromium.launch(
+            channel="msedge", headless=True
+        )
 
     def close(self):
         """Close browser and Playwright."""
