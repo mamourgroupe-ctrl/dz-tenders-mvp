@@ -84,8 +84,7 @@ def _try_acquire(handle) -> bool:
         True عند نجاح الالتقاط، False إذا كان محجوزاً.
     """
     if os.name == "nt":
-        import msvcrt
-
+        msvcrt = __import__("msvcrt")
         handle.seek(0)
         try:
             msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
@@ -105,8 +104,7 @@ def _try_acquire(handle) -> bool:
 def _release(handle) -> None:
     """تحرير القفل؛ الفشل هنا لا يُهمّ لأن إغلاق المقبض يحرّره أصلاً."""
     if os.name == "nt":
-        import msvcrt
-
+        msvcrt = __import__("msvcrt")
         handle.seek(0)
         with contextlib.suppress(OSError):
             msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
