@@ -14,6 +14,7 @@ from urllib.parse import parse_qs, urljoin, urlsplit
 
 import requests
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from dotenv import load_dotenv
 
 from storage.database import TenderDatabase
@@ -108,9 +109,11 @@ class MounakassatCrawler(BaseCrawler):
         if not html_content:
             return []
         soup = BeautifulSoup(html_content, "html.parser")
-        cards = soup.select("main article")
+        cards: list[Tag] = list(soup.select("main article"))
         if not cards:
-            candidates = soup.select('main [class*="card"], main [class*="annonce"]')
+            candidates: list[Tag] = list(
+                soup.select('main [class*="card"], main [class*="annonce"]')
+            )
             candidate_ids = {id(card) for card in candidates}
             cards = [
                 card
@@ -187,7 +190,10 @@ class MounakassatCrawler(BaseCrawler):
         soup = BeautifulSoup(html_content, "html.parser")
         page_numbers = []
         for link in soup.select('a[href*="page="]'):
-            page = parse_qs(urlsplit(link["href"]).query).get("page", [None])[0]
+            href = link.get("href")
+            if not isinstance(href, str):
+                continue
+            page = parse_qs(urlsplit(href).query).get("page", [None])[0]
             if page and page.isdigit():
                 page_numbers.append(int(page))
         return max(page_numbers, default=current_page)

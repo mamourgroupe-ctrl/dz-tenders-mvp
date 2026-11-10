@@ -55,7 +55,7 @@ class NotificationManager:
         self.channels.append(channel)
         logger.info(f"📡 تم تسجيل قناة: {channel.name}")
 
-    def broadcast(self, message: str, filepath: str = None) -> list[dict]:
+    def broadcast(self, message: str, filepath: str | None = None) -> list[dict]:
         """إرسال رسالة (وملف اختياري) عبر جميع القنوات."""
         results = []
         for ch in self.channels:

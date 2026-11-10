@@ -169,6 +169,8 @@ def test_subscription_active_at_boundaries(seeded) -> None:
     subscription = subscribe(db, user, plan_code="gold", sector_slugs=("water",))
 
     now = utcnow()
+    assert subscription.starts_at is not None
+    assert subscription.ends_at is not None
     assert subscription.is_active_at(now)
     assert not subscription.is_active_at(subscription.ends_at + timedelta(seconds=1))
     assert not subscription.is_active_at(subscription.starts_at - timedelta(seconds=1))

@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 from logging.config import fileConfig
 from pathlib import Path
+from typing import Any, Literal
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
@@ -41,7 +42,21 @@ config.set_main_option("sqlalchemy.url", url)
 target_metadata = Base.metadata
 
 
-def include_object(obj, name: str, type_: str, reflected: bool, compare_to) -> bool:
+def include_object(
+    obj: Any,
+    name: str | None,
+    type_: Literal[
+        "schema",
+        "table",
+        "column",
+        "index",
+        "unique_constraint",
+        "foreign_key_constraint",
+        "check_constraint",
+    ],
+    reflected: bool,
+    compare_to: Any,
+) -> bool:
     """Keep the FTS5 virtual table and its shadow tables out of autogenerate."""
     is_fts = type_ == "table" and (
         name == "announcement_fts" or str(name).startswith("announcement_fts_")

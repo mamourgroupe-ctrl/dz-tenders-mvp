@@ -148,6 +148,7 @@ def test_create_admin(tmp_path, monkeypatch, capsys) -> None:
     factory = make_session_factory(engine)
     with session_scope(factory) as db:
         user = db.scalar(select(User).where(User.phone == "+213555000111"))
+        assert user is not None
         assert user.role.value == "admin"
     engine.dispose()
 

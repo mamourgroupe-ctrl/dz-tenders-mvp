@@ -93,7 +93,7 @@ def _try_acquire(handle) -> bool:
             return False
         return True
 
-    import fcntl
+    fcntl = __import__("fcntl")
 
     try:
         fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -112,7 +112,7 @@ def _release(handle) -> None:
             msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
         return
 
-    import fcntl
+    fcntl = __import__("fcntl")
 
     with contextlib.suppress(OSError):
         fcntl.flock(handle.fileno(), fcntl.LOCK_UN)

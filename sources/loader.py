@@ -50,7 +50,9 @@ class SourcesLoader:
         return [s for s in sources if s.get("tp")]
 
     def stats(self) -> dict:
-        by_pri, by_cat, by_st = {}, {}, {}
+        by_pri: dict[str, int] = {}
+        by_cat: dict[str | None, int] = {}
+        by_st: dict[str | None, int] = {}
         for s in self.sources:
             by_pri[str(s.get("pri"))] = by_pri.get(str(s.get("pri")), 0) + 1
             by_cat[s.get("cat")] = by_cat.get(s.get("cat"), 0) + 1

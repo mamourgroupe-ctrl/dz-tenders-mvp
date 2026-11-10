@@ -48,7 +48,7 @@ class WhatsAppNotifier:
         to_number: str,
         template_name: str,
         language_code: str = "ar",
-        components: list = None,
+        components: list | None = None,
     ):
         """إرسال قالب معتمد"""
         try:
@@ -69,7 +69,7 @@ class WhatsAppNotifier:
         recipients: list,
         template_name: str,
         language_code: str = "ar",
-        components: list = None,
+        components: list | None = None,
     ):
         """إرسال قالب إلى قائمة من الأرقام"""
         results = []
