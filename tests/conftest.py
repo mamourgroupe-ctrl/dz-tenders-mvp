@@ -159,6 +159,9 @@ def login(client: TestClient, phone: str, password: str = TEST_PASSWORD):
     """Log in through the real form (CSRF cookie + hidden token)."""
     client.get("/connexion")
     csrf = client.cookies.get("dz_csrf")
+    if csrf is None:
+        raise AssertionError("CSRF cookie was not set after opening the login page")
+
     return client.post(
         "/connexion",
         data={"phone": phone, "password": password, "csrf_token": csrf},

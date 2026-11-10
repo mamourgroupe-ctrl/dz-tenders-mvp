@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import re
+from collections.abc import Callable
 from datetime import datetime
 from urllib.parse import urljoin
 
@@ -125,10 +126,18 @@ class PublicTenderCrawler(BaseCrawler):
         """Return likely record containers while excluding listing wrappers."""
         candidates: list[Tag] = []
         for element in soup.find_all(True):
+            classes = element.get("class")
+            if isinstance(classes, str):
+                class_text = classes
+            elif isinstance(classes, list):
+                class_text = " ".join(str(value) for value in classes)
+            else:
+                class_text = ""
+
             identity = " ".join(
                 [
                     str(element.get("id") or ""),
-                    " ".join(element.get("class", [])),
+                    class_text,
                 ]
             )
             is_container = _CONTAINER_RE.search(identity)
@@ -222,11 +231,11 @@ class PublicTenderCrawler(BaseCrawler):
 
 
 def run_cli(
-    crawler_type: type[PublicTenderCrawler], argv: list[str] | None = None
+    crawler_factory: Callable[[], PublicTenderCrawler], argv: list[str] | None = None
 ) -> int:
     """Run a crawler, printing JSON in dry-run mode or saving records otherwise."""
     parser = argparse.ArgumentParser(
-        description=f"Crawl {crawler_type.__name__} tenders."
+        description=f"Crawl {getattr(crawler_factory, '__name__', 'crawler')} tenders."
     )
     parser.add_argument(
         "--dry-run",
@@ -234,7 +243,9 @@ def run_cli(
         help="Print parsed records as JSON without writing to the database.",
     )
     args = parser.parse_args(argv)
-    tenders = crawler_type().run()
+    crawler = crawler_factory()
+    crawler_name = type(crawler).__name__
+    tenders = crawler.run()
 
     if args.dry_run:
         print(json.dumps(tenders, ensure_ascii=False, indent=2))
@@ -249,7 +260,5 @@ def run_cli(
             "relevance_score": MIN_TENDER_RELEVANCE_SCORE,
         }
         saved += database.add_tender(storage_record)
-    logger.info(
-        "%s: saved %d of %d tenders", crawler_type.__name__, saved, len(tenders)
-    )
+    logger.info("%s: saved %d of %d tenders", crawler_name, saved, len(tenders))
     return 0

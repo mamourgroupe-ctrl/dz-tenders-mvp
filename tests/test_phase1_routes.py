@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import unquote
 
+import sqlalchemy
 from sqlalchemy import func, select
 
 from tests.conftest import login, make_user, subscribe
@@ -249,7 +250,7 @@ def test_view_counter_increments(client, seeded) -> None:
 
 
 def test_search_terms_are_logged(client, seeded) -> None:
-    seeded.execute(SearchLog.__table__.delete())
+    seeded.execute(sqlalchemy.delete(SearchLog))
     seeded.commit()
     client.get("/annonces", params={"q": "خزانات"})
     count = seeded.scalar(
