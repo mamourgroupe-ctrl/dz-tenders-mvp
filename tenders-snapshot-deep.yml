@@ -1,0 +1,154 @@
+- generic [ref=f1e3] [box=0,0,1440,900]:
+  - complementary [ref=f1e4] [box=1176,0,264,900]:
+    - generic [ref=f1e13] [box=1242,23,122,34]:
+      - paragraph [ref=f1e14] [box=1242,23,122,19]: شركة طيب بلاست
+      - paragraph [ref=f1e15] [box=1242,44,122,14]: منصة المناقصات
+    - generic [ref=f1e20] [box=1193,96,231,15]: القائمة الرئيسية
+    - navigation [ref=f1e21] [box=1193,123,231,139]:
+      - link "نظرة عامة" [ref=f1e22] [cursor=pointer] [box=1193,123,231,44]:
+        - /url: /
+      - link "المناقصات" [ref=f1e29] [cursor=pointer] [box=1193,171,231,44]:
+        - /url: /tenders
+      - link "الإحصائيات" [ref=f1e35] [cursor=pointer] [box=1193,218,231,44]:
+        - /url: /statistics
+    - generic [ref=f1e39] [box=1193,294,231,15]: مساحة العمل
+    - navigation [ref=f1e40] [box=1193,321,231,91]:
+      - link "المفضلة 8" [ref=f1e41] [cursor=pointer] [box=1193,321,231,44]:
+        - /url: /tenders
+        - generic [ref=f1e44] [box=1333,333,48,20]: المفضلة
+        - generic [ref=f1e45] [box=1205,333,22,19]: "8"
+      - button "الإعدادات" [ref=f1e46] [cursor=pointer] [box=1193,368,231,44]
+    - generic [ref=f1e51] [box=1193,703,231,146]:
+      - paragraph [ref=f1e56] [box=1209,763,199,16]: هل تحتاج إلى مساعدة؟
+      - paragraph [ref=f1e57] [box=1209,783,199,20]: فريق الدعم متاح للإجابة عن استفساراتك.
+      - button "تواصل معنا" [ref=f1e58] [cursor=pointer] [box=1332,815,76,17]
+    - paragraph [ref=f1e61] [box=1193,865,231,15]: الإصدار 1.0.0 · 2026
+  - generic [ref=f1e62] [box=0,0,1176,900]:
+    - banner [ref=f1e63] [box=0,0,1176,76]:
+      - textbox "بحث" [ref=f1e71] [box=863,30,241,16]:
+        - /placeholder: ابحث عن مناقصة، جهة...
+      - generic [ref=f1e72] [box=36,18,252,39]:
+        - button "تغيير المظهر" [ref=f1e73] [cursor=pointer] [box=250,19,38,38]
+        - button "الإشعارات" [ref=f1e76] [cursor=pointer] [box=195,18,39,39]
+        - generic [ref=f1e82] [box=36,20,126,36]:
+          - generic [ref=f1e83] [box=80,21,82,33]:
+            - paragraph [ref=f1e84] [box=80,21,82,16]: مامور عبدالرزاق
+            - paragraph [ref=f1e85] [box=80,39,82,15]: مسؤول البرمجة
+          - generic [ref=f1e86] [box=36,20,36,36]: أب
+    - main [ref=f1e87] [box=0,76,1176,749]:
+      - generic [ref=f1e88] [box=36,108,1104,84]:
+        - generic [ref=f1e89] [box=840,108,300,84]:
+          - generic [ref=f1e90] [box=840,108,300,16]: قاعدة البيانات محدثة
+          - heading "المناقصات" [level=1] [ref=f1e92] [box=840,132,300,32]
+          - paragraph [ref=f1e93] [box=840,172,300,20]: استكشف وتابع فرص المناقصات الحكومية في الجزائر.
+        - generic [ref=f1e95] [box=36,154,102,38]:
+          - text: "إجمالي النتائج:"
+          - strong [ref=f1e96] [box=49,161,7,23]: "0"
+      - generic [ref=f1e99] [box=36,220,1104,573]:
+        - complementary [ref=f1e133] [box=896,220,244,573]:
+          - heading "تصفية النتائج" [level=2] [ref=f1e138] [box=1017,237,82,20]
+          - generic [ref=f1e139] [box=913,277,210,391]:
+            - generic [ref=f1e140] [box=913,277,210,65]:
+              - generic [ref=f1e141] [box=913,277,210,17]: الولاية
+              - combobox "الولاية" [ref=f1e142] [box=913,302,210,40]:
+                - option "كل الولايات" [selected] [box=0,0,0,0]
+                - option "أدرار" [box=0,0,0,0]
+                - option "الشلف" [box=0,0,0,0]
+                - option "الأغواط" [box=0,0,0,0]
+                - option "أم البواقي" [box=0,0,0,0]
+                - option "باتنة" [box=0,0,0,0]
+                - option "بجاية" [box=0,0,0,0]
+                - option "بسكرة" [box=0,0,0,0]
+                - option "بشار" [box=0,0,0,0]
+                - option "البليدة" [box=0,0,0,0]
+                - option "البويرة" [box=0,0,0,0]
+                - option "تمنراست" [box=0,0,0,0]
+                - option "تبسة" [box=0,0,0,0]
+                - option "تلمسان" [box=0,0,0,0]
+                - option "تيارت" [box=0,0,0,0]
+                - option "تيزي وزو" [box=0,0,0,0]
+                - option "الجزائر" [box=0,0,0,0]
+                - option "الجلفة" [box=0,0,0,0]
+                - option "جيجل" [box=0,0,0,0]
+                - option "سطيف" [box=0,0,0,0]
+                - option "سعيدة" [box=0,0,0,0]
+                - option "سكيكدة" [box=0,0,0,0]
+                - option "سيدي بلعباس" [box=0,0,0,0]
+                - option "عنابة" [box=0,0,0,0]
+                - option "قالمة" [box=0,0,0,0]
+                - option "قسنطينة" [box=0,0,0,0]
+                - option "المدية" [box=0,0,0,0]
+                - option "مستغانم" [box=0,0,0,0]
+                - option "المسيلة" [box=0,0,0,0]
+                - option "معسكر" [box=0,0,0,0]
+                - option "ورقلة" [box=0,0,0,0]
+                - option "وهران" [box=0,0,0,0]
+                - option "البيض" [box=0,0,0,0]
+                - option "إليزي" [box=0,0,0,0]
+                - option "برج بوعريريج" [box=0,0,0,0]
+                - option "بومرداس" [box=0,0,0,0]
+                - option "الطارف" [box=0,0,0,0]
+                - option "تندوف" [box=0,0,0,0]
+                - option "تيسمسيلت" [box=0,0,0,0]
+                - option "الوادي" [box=0,0,0,0]
+                - option "خنشلة" [box=0,0,0,0]
+                - option "سوق أهراس" [box=0,0,0,0]
+                - option "تيبازة" [box=0,0,0,0]
+                - option "ميلة" [box=0,0,0,0]
+                - option "عين الدفلى" [box=0,0,0,0]
+                - option "النعامة" [box=0,0,0,0]
+                - option "عين تموشنت" [box=0,0,0,0]
+                - option "غرداية" [box=0,0,0,0]
+                - option "غليزان" [box=0,0,0,0]
+                - option "تيميمون" [box=0,0,0,0]
+                - option "برج باجي مختار" [box=0,0,0,0]
+                - option "أولاد جلال" [box=0,0,0,0]
+                - option "بني عباس" [box=0,0,0,0]
+                - option "عين صالح" [box=0,0,0,0]
+                - option "عين قزام" [box=0,0,0,0]
+                - option "تقرت" [box=0,0,0,0]
+                - option "جانت" [box=0,0,0,0]
+                - option "المغير" [box=0,0,0,0]
+                - option "المنيعة" [box=0,0,0,0]
+            - generic [ref=f1e143] [box=913,362,210,65]:
+              - generic [ref=f1e144] [box=913,362,210,17]: نوع المنتج
+              - combobox "نوع المنتج" [ref=f1e145] [box=913,386,210,40]:
+                - option "كل المنتجات" [selected] [box=0,0,0,0]
+                - option "أنابيب PVC" [box=0,0,0,0]
+                - option "أنابيب PEHD" [box=0,0,0,0]
+                - option "خزانات PE" [box=0,0,0,0]
+            - generic [ref=f1e146] [box=913,446,210,65]:
+              - generic [ref=f1e147] [box=913,446,210,17]: الأولوية
+              - combobox "الأولوية" [ref=f1e148] [box=913,471,210,40]:
+                - option "كل الأولويات" [selected] [box=0,0,0,0]
+                - option "أولوية 1 — عالية" [box=0,0,0,0]
+                - option "أولوية 2 — متوسطة" [box=0,0,0,0]
+                - option "أولوية 3 — منخفضة" [box=0,0,0,0]
+            - generic [ref=f1e149] [box=913,531,210,137]:
+              - paragraph [ref=f1e150] [box=913,552,210,16]: نطاق تاريخ الإغلاق
+              - generic [ref=f1e151] [box=913,580,210,88]:
+                - textbox "من تاريخ" [ref=f1e153] [box=913,580,210,40]
+                - textbox "إلى تاريخ" [ref=f1e155] [box=913,628,210,40]
+          - generic [ref=f1e156] [box=913,692,210,85]:
+            - paragraph [ref=f1e157] [box=925,704,186,17]: نصيحة سريعة
+            - paragraph [ref=f1e158] [box=925,724,186,40]: استخدم درجة المطابقة للعثور على الفرص الأقرب لمنتجاتك.
+        - generic [ref=f1e100] [box=36,220,836,246]:
+          - generic [ref=f1e101] [box=36,220,836,44]:
+            - generic [ref=f1e102] [box=442,220,430,44]:
+              - textbox "ابحث بالعنوان أو الجهة أو الولاية..." [ref=f1e106] [box=491,234,343,16]
+              - button "بحث" [ref=f1e107] [cursor=pointer] [box=457,229,26,26]
+            - generic [ref=f1e111] [box=36,227,184,31]:
+              - generic [ref=f1e112] [box=75,234,145,16]: يتم عرض 20 نتيجة في الصفحة
+              - button "تحديث" [ref=f1e113] [cursor=pointer] [box=36,227,31,31]
+          - generic [ref=f1e117] [box=36,280,836,159]:
+            - generic [ref=f1e159] [box=37,281,834,100]: تعذر الاتصال بخدمة المناقصات. تحقق من تشغيل الـ API ثم أعد المحاولة.
+            - generic [ref=f1e120] [box=37,381,834,57]:
+              - paragraph [ref=f1e121] [box=721,402,130,17]:
+                - text: عرض
+                - strong [ref=f1e122] [box=807,400,19,20]: 0–0
+                - text: من أصل 0 مناقصة
+              - generic [ref=f1e123] [box=57,396,92,28]:
+                - button [disabled] [ref=f1e124] [box=121,396,28,28]
+                - button "1" [ref=f1e127] [cursor=pointer] [box=89,396,28,28]
+                - button [disabled] [ref=f1e128] [box=57,396,28,28]
+          - generic [ref=f1e131] [box=36,451,836,15]: 0 مناقصة نشطة تحتاج إلى متابعة

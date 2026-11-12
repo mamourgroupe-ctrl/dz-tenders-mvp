@@ -1,0 +1,31 @@
+- generic [ref=f1e3] [box=0,0,1440,900]:
+  - complementary [ref=f1e4] [box=1176,0,264,900]:
+    - generic [ref=f1e13] [box=1242,23,122,34]:
+      - paragraph [ref=f1e14] [box=1242,23,122,19]: شركة طيب بلاست
+      - paragraph [ref=f1e15] [box=1242,44,122,14]: منصة المناقصات
+    - generic [ref=f1e20] [box=1193,96,231,15]: القائمة الرئيسية
+    - navigation [ref=f1e21] [box=1193,123,231,139]:
+      - link "نظرة عامة" [ref=f1e22] [cursor=pointer] [box=1193,123,231,44]:
+        - /url: /
+      - link "المناقصات" [ref=f1e29] [cursor=pointer] [box=1193,171,231,44]:
+        - /url: /tenders
+      - link "الإحصائيات" [ref=f1e35] [cursor=pointer] [box=1193,218,231,44]:
+        - /url: /statistics
+    - generic [ref=f1e39] [box=1193,294,231,15]: مساحة العمل
+    - navigation [ref=f1e40] [box=1193,321,231,91]:
+      - link "المفضلة 8" [ref=f1e41] [cursor=pointer] [box=1193,321,231,44]:
+        - /url: /tenders
+      - button "الإعدادات" [ref=f1e46] [cursor=pointer] [box=1193,368,231,44]
+    - generic [ref=f1e51] [box=1193,703,231,146]:
+      - paragraph [ref=f1e56] [box=1209,763,199,16]: هل تحتاج إلى مساعدة؟
+      - paragraph [ref=f1e57] [box=1209,783,199,20]: فريق الدعم متاح للإجابة عن استفساراتك.
+      - button "تواصل معنا" [ref=f1e58] [cursor=pointer] [box=1332,815,76,17]
+    - paragraph [ref=f1e61] [box=1193,865,231,15]: الإصدار 1.0.0 · 2026
+  - generic [ref=f1e62] [box=0,0,1176,900]:
+    - banner [ref=f1e63] [box=0,0,1176,76]:
+      - textbox "بحث" [ref=f1e71] [box=863,30,241,16]:
+        - /placeholder: ابحث عن مناقصة، جهة...
+      - generic [ref=f1e72] [box=36,18,252,39]
+    - main [ref=f1e87] [box=0,76,1176,749]:
+      - generic [ref=f1e88] [box=36,108,1104,84]
+      - generic [ref=f1e99] [box=36,220,1104,573]
