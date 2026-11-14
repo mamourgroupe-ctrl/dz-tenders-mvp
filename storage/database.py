@@ -403,6 +403,67 @@ class TenderDatabase:
         """Ø¥Ø±Ø¬Ø§Ø¹ Ø§Ù„Ù…Ù†Ø§Ù‚ØµØ§Øª Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© ÙÙ‚Ø·"""
         return [t for t in tenders if not self.is_notified(t)]
 
+    def observe_existing_tenders(self, tenders: list[dict]) -> int:
+        """تحديث last_seen للمناقصات الموجودة مسبقاً في القاعدة فقط.
+
+        لا يُدرج سجلات جديدة، ولا يطبق شروط التأهيل التجاري، ولا يغير أي حالة
+        أخرى (notified, blocked, is_noise, retry_count, last_error, last_attempt_at).
+
+        Args:
+            tenders: قائمة المناقصات التي رصدتها مصادر الزحف.
+
+        Returns:
+            عدد السجلات التي تم تحديث last_seen لها.
+        """
+        if not tenders:
+            return 0
+
+        now = datetime.now().isoformat()
+        updated = 0
+
+        # Build set of unique fingerprints from input, skipping those with
+        # missing/empty identity fields to avoid matching unrelated rows.
+        fingerprints = set()
+        for tender in tenders:
+            title = str(tender.get("title", "")).strip().lower()
+            org = str(tender.get("organisation", "")).strip().lower()
+            link = str(tender.get("link", "")).strip().lower()
+            if title and org and link:
+                fp = hashlib.sha256(f"{title}|{org}|{link}".encode("utf-8")).hexdigest()
+                fingerprints.add(fp)
+
+        if not fingerprints:
+            return 0
+
+        placeholders = ",".join("?" for _ in fingerprints)
+        with self._connect() as conn:
+            # First check which fingerprints exist and are not noise
+            rows = conn.execute(
+                f"""
+                SELECT fingerprint FROM tenders
+                WHERE fingerprint IN ({placeholders})
+                AND is_noise = 0
+                """,
+                tuple(fingerprints),
+            ).fetchall()
+
+            existing_fps = [row["fingerprint"] for row in rows]
+
+            if existing_fps:
+                update_placeholders = ",".join("?" for _ in existing_fps)
+                cursor = conn.execute(
+                    f"""
+                    UPDATE tenders
+                    SET last_seen = ?
+                    WHERE fingerprint IN ({update_placeholders})
+                    """,
+                    (now, *existing_fps),
+                )
+                updated = cursor.rowcount or 0
+                conn.commit()
+
+        return updated
+
     def stats(self) -> dict:
         """Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª Ø³Ø±ÙŠØ¹Ø©"""
         with self._connect() as conn:

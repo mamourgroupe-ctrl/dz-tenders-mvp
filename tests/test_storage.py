@@ -1,6 +1,7 @@
 """اختبارات طبقة التخزين: الترحيل، عدّاد المحاولات، الحجب، وفك الحجب."""
 
 import sqlite3
+from datetime import datetime
 
 import pytest
 
@@ -490,3 +491,283 @@ def test_declared_migration_columns_cover_new_schema(column):
     from storage.database import MIGRATION_COLUMNS
 
     assert any(f"ADD COLUMN {column} " in statement for statement in MIGRATION_COLUMNS)
+
+
+# ── observe_existing_tenders tests ─────────────────────────────────────────────
+
+
+def test_observe_existing_updates_last_seen_for_existing_tender(tmp_path):
+    """مناقصة موجودة مسبقاً يتم تحديث last_seen عند رصدها."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    store.add_tender(TENDER)
+
+    # Get the original last_seen
+    original_row = _row(store.db_path, store._fingerprint(TENDER))
+    original_last_seen = original_row["last_seen"]
+
+    # Observe the same tender again
+    updated = store.observe_existing_tenders([TENDER])
+
+    assert updated == 1
+    new_row = _row(store.db_path, store._fingerprint(TENDER))
+    assert new_row["last_seen"] != original_last_seen
+    assert new_row["last_seen"] > original_last_seen
+
+
+def test_observe_existing_does_not_insert_new_tender(tmp_path):
+    """مناقصة غير موجودة لا يتم إدراجها."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+
+    updated = store.observe_existing_tenders([TENDER])
+
+    assert updated == 0
+    assert store.count() == 0
+
+
+def test_observe_existing_updates_even_when_commercially_excluded(tmp_path):
+    """مناقصة موجودة ومستبعدة تجارياً يتم تحديث last_seen لها."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    # Add a tender that would fail business filter (low relevance)
+    # Bypass add_tender validation by inserting directly
+    low_relevance = {**TENDER, "relevance_score": 1}
+    fp = store._fingerprint(low_relevance)
+    now = datetime.now().isoformat()
+    with store._connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO tenders (
+                fingerprint, title, organisation, wilaya, product,
+                deadline, status, link, relevance_score,
+                matched_families, first_seen, last_seen, notified,
+                reference, source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+            """,
+            (
+                fp,
+                low_relevance.get("title", ""),
+                low_relevance.get("organisation", ""),
+                low_relevance.get("wilaya") or None,
+                low_relevance.get("product", ""),
+                low_relevance.get("deadline") or None,
+                low_relevance.get("status", ""),
+                low_relevance.get("link", ""),
+                low_relevance.get("relevance_score", 0),
+                store._families_to_db_value(low_relevance.get("matched_families", []) or [], fp),
+                now,
+                now,
+                low_relevance.get("reference") or low_relevance.get("tender_number"),
+                low_relevance.get("source"),
+            ),
+        )
+        conn.commit()
+
+    original_row = _row(store.db_path, fp)
+    original_last_seen = original_row["last_seen"]
+
+    # Observe it again - should update last_seen despite low relevance
+    updated = store.observe_existing_tenders([low_relevance])
+
+    assert updated == 1
+    new_row = _row(store.db_path, fp)
+    assert new_row["last_seen"] != original_last_seen
+
+
+def test_observe_existing_does_not_require_relevance_score(tmp_path):
+    """عدم اشتراط relevance_score لاكتشاف المناقصة أثناء الرصد."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    # Tender with relevance_score 0 (below MIN_TENDER_RELEVANCE_SCORE)
+    # Bypass add_tender validation by inserting directly
+    no_relevance = {**TENDER, "relevance_score": 0}
+    fp = store._fingerprint(no_relevance)
+    now = datetime.now().isoformat()
+    with store._connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO tenders (
+                fingerprint, title, organisation, wilaya, product,
+                deadline, status, link, relevance_score,
+                matched_families, first_seen, last_seen, notified,
+                reference, source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+            """,
+            (
+                fp,
+                no_relevance.get("title", ""),
+                no_relevance.get("organisation", ""),
+                no_relevance.get("wilaya") or None,
+                no_relevance.get("product", ""),
+                no_relevance.get("deadline") or None,
+                no_relevance.get("status", ""),
+                no_relevance.get("link", ""),
+                no_relevance.get("relevance_score", 0),
+                store._families_to_db_value(no_relevance.get("matched_families", []) or [], fp),
+                now,
+                now,
+                no_relevance.get("reference") or no_relevance.get("tender_number"),
+                no_relevance.get("source"),
+            ),
+        )
+        conn.commit()
+
+    original_row = _row(store.db_path, fp)
+    original_last_seen = original_row["last_seen"]
+
+    updated = store.observe_existing_tenders([no_relevance])
+
+    assert updated == 1
+    new_row = _row(store.db_path, fp)
+    assert new_row["last_seen"] != original_last_seen
+
+
+def test_observe_existing_does_not_change_notified(tmp_path):
+    """عدم تغيير notified."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    store.add_tender(TENDER)
+    store.mark_notified(TENDER)
+
+    original_row = _row(store.db_path, store._fingerprint(TENDER))
+    assert original_row["notified"] == 1
+
+    store.observe_existing_tenders([TENDER])
+
+    new_row = _row(store.db_path, store._fingerprint(TENDER))
+    assert new_row["notified"] == 1
+
+
+def test_observe_existing_does_not_change_blocked(tmp_path):
+    """عدم تغيير blocked."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    store.add_tender(TENDER)
+    for _ in range(MAX_DELIVERY_ATTEMPTS):
+        store.register_failed_attempt(TENDER, "boom")
+
+    original_row = _row(store.db_path, store._fingerprint(TENDER))
+    assert original_row["blocked"] == 1
+
+    store.observe_existing_tenders([TENDER])
+
+    new_row = _row(store.db_path, store._fingerprint(TENDER))
+    assert new_row["blocked"] == 1
+
+
+def test_observe_existing_does_not_change_is_noise(tmp_path):
+    """عدم تغيير is_noise."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    # Add a valid tender first
+    store.add_tender(TENDER)
+    # Manually mark as noise
+    fp = store._fingerprint(TENDER)
+    with store._connect() as conn:
+        conn.execute("UPDATE tenders SET is_noise = 1 WHERE fingerprint = ?", (fp,))
+        conn.commit()
+
+    original_row = _row(store.db_path, fp)
+    assert original_row["is_noise"] == 1
+
+    store.observe_existing_tenders([TENDER])
+
+    new_row = _row(store.db_path, fp)
+    assert new_row["is_noise"] == 1
+
+
+def test_observe_existing_does_not_change_retry_count(tmp_path):
+    """عدم تغيير retry_count."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    store.add_tender(TENDER)
+    store.register_failed_attempt(TENDER, "error1")
+    store.register_failed_attempt(TENDER, "error2")
+
+    original_row = _row(store.db_path, store._fingerprint(TENDER))
+    assert original_row["retry_count"] == 2
+
+    store.observe_existing_tenders([TENDER])
+
+    new_row = _row(store.db_path, store._fingerprint(TENDER))
+    assert new_row["retry_count"] == 2
+
+
+def test_observe_existing_does_not_change_last_error(tmp_path):
+    """عدم تغيير last_error."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    store.add_tender(TENDER)
+    store.register_failed_attempt(TENDER, "original error")
+
+    original_row = _row(store.db_path, store._fingerprint(TENDER))
+    assert original_row["last_error"] == "original error"
+
+    store.observe_existing_tenders([TENDER])
+
+    new_row = _row(store.db_path, store._fingerprint(TENDER))
+    assert new_row["last_error"] == "original error"
+
+
+def test_observe_existing_does_not_change_last_attempt_at(tmp_path):
+    """عدم تغيير last_attempt_at."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    store.add_tender(TENDER)
+    store.register_failed_attempt(TENDER, "error")
+
+    original_row = _row(store.db_path, store._fingerprint(TENDER))
+    original_attempt = original_row["last_attempt_at"]
+
+    store.observe_existing_tenders([TENDER])
+
+    new_row = _row(store.db_path, store._fingerprint(TENDER))
+    assert new_row["last_attempt_at"] == original_attempt
+
+
+def test_observe_existing_skips_missing_identity_fields(tmp_path):
+    """عدم تحديث سجل عند نقص الهوية (title, organisation, or link)."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    store.add_tender(TENDER)
+
+    # Tender missing title
+    incomplete = {**TENDER, "title": ""}
+    updated = store.observe_existing_tenders([incomplete])
+    assert updated == 0
+
+    # Tender missing organisation
+    incomplete2 = {**TENDER, "organisation": ""}
+    updated = store.observe_existing_tenders([incomplete2])
+    assert updated == 0
+
+    # Tender missing link
+    incomplete3 = {**TENDER, "link": ""}
+    updated = store.observe_existing_tenders([incomplete3])
+    assert updated == 0
+
+
+def test_observe_existing_handles_duplicates(tmp_path):
+    """التعامل الصحيح مع المناقصات المكررة في القائمة."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    store.add_tender(TENDER)
+
+    original_row = _row(store.db_path, store._fingerprint(TENDER))
+    original_last_seen = original_row["last_seen"]
+
+    # Pass the same tender multiple times
+    updated = store.observe_existing_tenders([TENDER, TENDER, TENDER])
+
+    assert updated == 1  # Only one update despite duplicates
+    new_row = _row(store.db_path, store._fingerprint(TENDER))
+    assert new_row["last_seen"] != original_last_seen
+
+
+def test_observe_existing_skips_noise_records(tmp_path):
+    """السجلات المصنفة كضجيج لا يتم تحديثها."""
+    store = TenderStore(db_path=str(tmp_path / "obs.db"))
+    store.add_tender(TENDER)
+    # Mark as noise
+    fp = store._fingerprint(TENDER)
+    with store._connect() as conn:
+        conn.execute("UPDATE tenders SET is_noise = 1 WHERE fingerprint = ?", (fp,))
+        conn.commit()
+
+    updated = store.observe_existing_tenders([TENDER])
+
+    # Should not update noise records
+    assert updated == 0
+
+    # last_seen should not change
+    row = _row(store.db_path, fp)
+    assert row["is_noise"] == 1

@@ -218,6 +218,7 @@ def main(argv=None):
 
     # نفس مسار التسليم الموحّد المستعمل في main.py: قفل واحد، ترحيل واحد.
     # يمرّ الصفقات المحجوبة تلقائياً لأن الفحص يتم عبر is_new_or_changed.
+    # unique_tenders تستخدم للرصد (تحديث last_seen)، filtered للتسليم والإشعارات.
     outcome = deliver(
         db_path,
         lambda: TenderStore(db_path=db_path),
@@ -225,6 +226,7 @@ def main(argv=None):
         send if not dry_run else None,
         dry_run=dry_run,
         label="test_run.py",
+        observed_tenders=unique_tenders,
     )
 
     if outcome.status == STATUS_LOCKED:

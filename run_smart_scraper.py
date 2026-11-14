@@ -97,12 +97,14 @@ def main():
     # نفس مسار التسليم الموحّد المستعمل في main.py، تحت قفل واحد.
     # TenderStore() بلا وسائط يفتح DEFAULT_DB_PATH، وهو نفس ما يعيده
     # resolve_db_path() بلا وسائط.
+    # unique تستخدم للرصد (تحديث last_seen)، filtered للتسليم والإشعارات.
     outcome = deliver(
         resolve_db_path(),
         TenderStore,
         filtered,
         send if TELEGRAM_BOT_TOKEN else None,
         label="run_smart_scraper.py",
+        observed_tenders=unique,
     )
 
     print(f"New: {outcome.inserted}, Total in DB: {outcome.total}")

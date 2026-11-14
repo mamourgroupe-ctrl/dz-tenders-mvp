@@ -100,8 +100,15 @@ def _deliver_locked(
     send: Sender | None,
     dry_run: bool,
     on_pending: Callable[[list[dict]], None] | None,
+    observed_tenders: Sequence[dict] | None = None,
 ) -> DeliveryOutcome:
     """تنفيذ التسلسل الحرج. يجب استدعاؤه والتزامه بقفل قاعدة البيانات."""
+    # Step 1: Observe existing tenders (update last_seen) if provided
+    if observed_tenders:
+        observe_fn = getattr(store, "observe_existing_tenders", None)
+        if callable(observe_fn):
+            observe_fn(list(observed_tenders))
+
     pending = [
         tender
         for tender in tenders
@@ -168,6 +175,7 @@ def deliver(
     on_pending: Callable[[list[dict]], None] | None = None,
     timeout: float | None = None,
     label: str = "",
+    observed_tenders: Iterable[dict] | None = None,
 ) -> DeliveryOutcome:
     """ترحيل الصفقات وتسليمها تحت قفل حصري واحد.
 
@@ -176,7 +184,7 @@ def deliver(
         store_factory: مصنع قاعدة البيانات. **يُستدعى داخل القفل** لأن
             ``TenderDatabase.__init__`` ينشئ الجداول ويزيحها — فتح القاعدة
             قبل القفل خرق للمقطع الحرج.
-        tenders: الصفقات المرشّحة بعد الفلترة.
+        tenders: الصفقات المرشّحة بعد الفلترة (للتسليم والإشعارات).
         send: دالة الإرسال تُعيد ``(نجاح، سبب_الخطأ)`` وتُنفَّذ داخل القفل.
             عند None يُتخطّى الإرسال بعد الحفظ.
         dry_run: حفظ بلا إرسال.
@@ -184,6 +192,8 @@ def deliver(
             الإرسال — لتوليد تقرير Excel مثلاً.
         timeout: مهلة انتظار القفل بالثواني. عند None تُقرأ من البيئة.
         label: وصف السكربت في رسائل القفل.
+        observed_tenders: اختياري — قائمة المناقصات التي رصدتها مصادر الزحف
+            لتحديث last_seen فقط. لا تُستخدم للتسليم أو الإشعارات.
 
     Returns:
         DeliveryOutcome؛ و``status`` يساوي ``STATUS_LOCKED`` إذا حجزت عملية
@@ -201,6 +211,7 @@ def deliver(
                     send,
                     dry_run,
                     on_pending,
+                    list(observed_tenders) if observed_tenders is not None else None,
                 )
             finally:
                 _close(store)

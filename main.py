@@ -343,6 +343,7 @@ def run():
         dry_run=dry_run,
         on_pending=build_report,
         label="main.py",
+        observed_tenders=live_tenders,
     )
 
     if outcome.status == STATUS_LOCKED:
