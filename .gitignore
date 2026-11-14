@@ -85,3 +85,9 @@ crawlers/mounakassat_progress.json
 .ai/config.env
 
 PowerShell/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+storage/
