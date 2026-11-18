@@ -8,12 +8,9 @@ import unicodedata
 from urllib.parse import urljoin
 
 import requests
-import urllib3
 from bs4 import BeautifulSoup
 
 from .base_crawler import BaseCrawler, sanitize_url
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class SmartCrawler(BaseCrawler):
@@ -76,9 +73,15 @@ class SmartCrawler(BaseCrawler):
             "Accept-Language": "ar,fr;q=0.9,en;q=0.8",
         }
         try:
-            r = requests.get(url, headers=headers, timeout=20, verify=False)
+            r = requests.get(url, headers=headers, timeout=20)
             r.encoding = r.apparent_encoding or "utf-8"
             return r.text if r.status_code == 200 else ""
+        except requests.exceptions.SSLError as e:
+            logging.warning(
+                f"{self.source_name}: TLS certificate validation failed "
+                f"for {url}: {type(e).__name__}"
+            )
+            return ""
         except Exception as e:
             logging.debug(f"{self.source_name}: {type(e).__name__}")
             return ""
