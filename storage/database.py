@@ -429,7 +429,7 @@ class TenderDatabase:
             org = str(tender.get("organisation", "")).strip().lower()
             link = str(tender.get("link", "")).strip().lower()
             if title and org and link:
-                fp = hashlib.sha256(f"{title}|{org}|{link}".encode("utf-8")).hexdigest()
+                fp = hashlib.sha256(f"{title}|{org}|{link}".encode()).hexdigest()
                 fingerprints.add(fp)
 
         if not fingerprints:
