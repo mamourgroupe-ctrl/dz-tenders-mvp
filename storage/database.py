@@ -7,6 +7,7 @@ import hashlib
 import logging
 import os
 import sqlite3
+from db_wrapper import get_db_connection
 import psycopg2
 from datetime import datetime
 
@@ -53,10 +54,7 @@ class TenderDatabase:
         self._init_db()
 
     def _connect(self):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("PRAGMA busy_timeout = 5000")
+        conn = get_db_connection(self.db_path)
         return conn
 
     def _init_db(self):
@@ -100,7 +98,6 @@ class TenderDatabase:
         """Ø£Ø³Ù…Ø§Ø¡ Ø£Ø¹Ù…Ø¯Ø© Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ù…Ù†Ø§Ù‚ØµØ§Øª
         ÙƒÙ…Ø§ Ù‡ÙŠ Ø§Ù„Ø¢Ù† ÙÙŠ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ø©.
         """
-        return {row[1] for row in conn.execute("PRAGMA table_info(tenders)")}
 
     def _migrate_schema(self, conn):
         """ØªØ±Ø­ÙŠÙ„ Ù‚ÙˆØ§Ø¹Ø¯ Ù‚Ø¯ÙŠÙ…Ø© Ø¥Ù„Ù‰ Ø§Ù„Ù…Ø®Ø·Ø· Ø§Ù„Ø­Ø§Ù„ÙŠ (idempotent).
@@ -129,7 +126,7 @@ class TenderDatabase:
                 continue
             try:
                 conn.execute(statement)
-            except sqlite3.OperationalError as exc:
+            except Exception as exc:
                 # Ø¹Ù…Ù„ÙŠØªØ§Ù† Ù‚Ø¯ ØªØ¨Ø¯Ø¢Ù† Ù…Ø¹Ø§Ù‹: Ø§Ù„Ø«Ø§Ù†ÙŠØ© ØªØ±Ù‰
                 # Ø§Ù„Ø¹Ù…ÙˆØ¯ Ù†Ø§Ù‚ØµØ§Ù‹ ÙØªÙ†Ø§Ù„ duplicate column.
                 if "duplicate column name" not in str(exc).lower():

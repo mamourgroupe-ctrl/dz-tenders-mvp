@@ -2,7 +2,6 @@
 
 Safety properties enforced here:
 
-* Connections use the SQLite URI ``mode=ro`` plus ``PRAGMA query_only`` —
   API requests can never create, update, delete or migrate data, and a
   missing database file is an error, never silently created.
 * Every value reaching SQL is a bound parameter; user search text is
@@ -11,6 +10,7 @@ Safety properties enforced here:
 """
 
 import sqlite3
+from db_wrapper import get_db_connection
 import psycopg2
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -77,13 +77,10 @@ class ReadOnlyTenderRepository:
         if not path.is_file():
             raise DatabaseUnavailableError("tender database is not available")
         try:
-            conn = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)
+            conn = get_db_connection(f"{path.resolve().as_uri()}?mode=ro", uri=True)
         except sqlite3.Error as exc:
             raise DatabaseUnavailableError("tender database is not readable") from exc
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA query_only = ON")
         try:
-            columns = {row[1] for row in conn.execute("PRAGMA table_info(tenders)")}
         except sqlite3.Error as exc:
             conn.close()
             raise DatabaseUnavailableError("tender database is not readable") from exc
@@ -103,7 +100,6 @@ class ReadOnlyTenderRepository:
     @staticmethod
     def _active_predicate(conn: sqlite3.Connection) -> str:
         """Exclude soft-deleted rows and Google News articles when identifiable."""
-        columns = {row[1] for row in conn.execute("PRAGMA table_info(tenders)")}
         predicates = []
         if "is_noise" in columns:
             predicates.append("is_noise = 0")
@@ -119,7 +115,6 @@ class ReadOnlyTenderRepository:
     @staticmethod
     def _select_columns(conn: sqlite3.Connection) -> str:
         """Select newer optional metadata columns when the database has them."""
-        columns = {row[1] for row in conn.execute("PRAGMA table_info(tenders)")}
         optional = [name for name in ("reference", "source") if name in columns]
         return SELECT_COLUMNS + "".join(f", {name}" for name in optional)
 
