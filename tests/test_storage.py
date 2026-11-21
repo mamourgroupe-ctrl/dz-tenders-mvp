@@ -1,6 +1,7 @@
 """اختبارات طبقة التخزين: الترحيل، عدّاد المحاولات، الحجب، وفك الحجب."""
 
 import sqlite3
+import psycopg2
 from datetime import datetime
 
 import pytest

@@ -12,6 +12,7 @@ for integrity verification before restoration.
 import hashlib
 import json
 import sqlite3
+import psycopg2
 import sys
 from datetime import UTC, datetime
 from pathlib import Path

@@ -16,6 +16,7 @@ import hashlib
 import json
 import shutil
 import sqlite3
+import psycopg2
 import sys
 from datetime import UTC, datetime
 from pathlib import Path

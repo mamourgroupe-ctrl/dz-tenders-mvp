@@ -7,6 +7,7 @@ import hashlib
 import logging
 import os
 import sqlite3
+import psycopg2
 from datetime import datetime
 
 from storage.tender_quality import is_valid_tender

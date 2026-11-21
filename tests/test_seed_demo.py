@@ -1,4 +1,5 @@
 import sqlite3
+import psycopg2
 
 from scripts.seed_demo import main
 

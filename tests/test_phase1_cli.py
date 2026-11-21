@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import psycopg2
 
 import pytest
 from sqlalchemy import func, select, text

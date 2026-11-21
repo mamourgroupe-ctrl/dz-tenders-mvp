@@ -11,6 +11,7 @@ Safety properties enforced here:
 """
 
 import sqlite3
+import psycopg2
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
