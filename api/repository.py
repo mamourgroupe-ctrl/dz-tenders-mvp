@@ -78,10 +78,11 @@ class ReadOnlyTenderRepository:
             raise DatabaseUnavailableError("tender database is not available")
         try:
             conn = get_db_connection(f"{path.resolve().as_uri()}?mode=ro", uri=True)
-        except sqlite3.Error as exc:
+        except Exception as exc:
             raise DatabaseUnavailableError("tender database is not readable") from exc
         try:
-        except sqlite3.Error as exc:
+        pass
+    except Exception as exc:
             conn.close()
             raise DatabaseUnavailableError("tender database is not readable") from exc
         if not REQUIRED_COLUMNS.issubset(columns):
