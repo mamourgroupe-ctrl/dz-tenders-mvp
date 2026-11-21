@@ -1,17 +1,20 @@
-"""Read-only SQLite access for the API.
+"""Read-only access to the ``tenders`` table for the API.
+
+Works against the local SQLite file (default) or PostgreSQL when the
+``DATABASE_URL`` environment variable is set (e.g. Neon in production).
 
 Safety properties enforced here:
 
-  API requests can never create, update, delete or migrate data, and a
-  missing database file is an error, never silently created.
+* The connection is read-only (SQLite ``mode=ro`` + ``query_only``;
+  PostgreSQL ``readonly`` session). API requests can never create, update,
+  delete or migrate data, and a missing SQLite file is an error, never
+  silently created.
 * Every value reaching SQL is a bound parameter; user search text is
   additionally escaped for ``LIKE`` wildcards.
 * Pagination is bounded by the route layer and re-clamped here.
 """
 
-import sqlite3
-from db_wrapper import get_db_connection
-import psycopg2
+import os
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
@@ -23,6 +26,7 @@ from api.mapping import (
     products_from_text,
 )
 from api.models import ProductCode
+from db_wrapper import get_db_connection
 
 REQUIRED_COLUMNS = {
     "id",
@@ -72,26 +76,55 @@ class ReadOnlyTenderRepository:
     def __init__(self, db_path: str) -> None:
         self.db_path = db_path
 
-    def _connect(self) -> sqlite3.Connection:
-        path = Path(self.db_path)
-        if not path.is_file():
-            raise DatabaseUnavailableError("tender database is not available")
-        try:
-            conn = get_db_connection(f"{path.resolve().as_uri()}?mode=ro", uri=True)
-        except Exception as exc:
-            raise DatabaseUnavailableError("tender database is not readable") from exc
+    @staticmethod
+    def _use_postgres() -> bool:
+        return bool(os.environ.get("DATABASE_URL"))
+
+    @staticmethod
+    def _columns(conn) -> set[str]:
+        """Column names of the ``tenders`` table for either backend."""
+        if hasattr(conn, "conn"):  # PostgreSQL wrapper from db_wrapper
+            rows = conn.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'tenders'"
+            ).fetchall()
+            return {row["column_name"] for row in rows}
+        return {row[1] for row in conn.execute("PRAGMA table_info(tenders)")}
+
+    @staticmethod
+    def _exec(conn, sql: str, params=None):
+        """Run one statement with ``?`` placeholders on either backend.
+
+        PostgreSQL (psycopg2) needs ``%s`` placeholders and literal ``%``
+        doubled whenever parameters are passed.
+        """
+        if hasattr(conn, "conn"):
+            if params:
+                return conn.execute(sql.replace("%", "%%").replace("?", "%s"), list(params))
+            return conn.execute(sql)
+        return conn.execute(sql, params or ())
+
+    def _connect(self):
+        if self._use_postgres():
+            try:
+                conn = get_db_connection()
+                conn.conn.set_session(readonly=True)
+            except Exception as exc:
+                raise DatabaseUnavailableError("tender database is not readable") from exc
+        else:
+            path = Path(self.db_path)
+            if not path.is_file():
+                raise DatabaseUnavailableError("tender database is not available")
+            try:
+                conn = get_db_connection(f"{path.resolve().as_uri()}?mode=ro", uri=True)
+                conn.execute("PRAGMA query_only = ON")
+            except Exception as exc:
+                raise DatabaseUnavailableError("tender database is not readable") from exc
 
         try:
-            if hasattr(conn, 'conn'):
-                cursor = conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'tenders'")
-                columns = {row['column_name'] for row in cursor.fetchall()}
-            else:
-                cursor = conn.execute("PRAGMA table_info(tenders)")
-                columns = {row['name'] for row in cursor.fetchall()}
+            columns = self._columns(conn)
         except Exception as exc:
             conn.close()
             raise DatabaseUnavailableError("tender database is not readable") from exc
-
         if not REQUIRED_COLUMNS.issubset(columns):
             conn.close()
             raise DatabaseUnavailableError("tender database schema is not initialized")
@@ -102,12 +135,12 @@ class ReadOnlyTenderRepository:
         with self._connect() as conn:
             predicate = self._active_predicate(conn)
             where = f" WHERE {predicate}" if predicate else ""
-            row = conn.execute(f"SELECT COUNT(*) AS n FROM tenders{where}").fetchone()
+            row = self._exec(conn, f"SELECT COUNT(*) AS n FROM tenders{where}").fetchone()
         return int(row["n"])
 
-    @staticmethod
-    def _active_predicate(conn: sqlite3.Connection) -> str:
+    def _active_predicate(self, conn) -> str:
         """Exclude soft-deleted rows and Google News articles when identifiable."""
+        columns = self._columns(conn)
         predicates = []
         if "is_noise" in columns:
             predicates.append("is_noise = 0")
@@ -120,9 +153,9 @@ class ReadOnlyTenderRepository:
             )
         return " AND ".join(predicates)
 
-    @staticmethod
-    def _select_columns(conn: sqlite3.Connection) -> str:
+    def _select_columns(self, conn) -> str:
         """Select newer optional metadata columns when the database has them."""
+        columns = self._columns(conn)
         optional = [name for name in ("reference", "source") if name in columns]
         return SELECT_COLUMNS + "".join(f", {name}" for name in optional)
 
@@ -169,11 +202,12 @@ class ReadOnlyTenderRepository:
             if predicate:
                 where += (" AND " if where else " WHERE ") + f"({predicate})"
             total = int(
-                conn.execute(
-                    f"SELECT COUNT(*) AS n FROM tenders{where}", params
-                ).fetchone()["n"]
+                self._exec(conn, f"SELECT COUNT(*) AS n FROM tenders{where}", params).fetchone()[
+                    "n"
+                ]
             )
-            rows = conn.execute(
+            rows = self._exec(
+                conn,
                 f"SELECT {self._select_columns(conn)} FROM tenders{where}"
                 " ORDER BY first_seen DESC, id DESC LIMIT ? OFFSET ?",
                 [*params, page_size, (page - 1) * page_size],
@@ -185,9 +219,9 @@ class ReadOnlyTenderRepository:
         with self._connect() as conn:
             predicate = self._active_predicate(conn)
             active_filter = f" AND ({predicate})" if predicate else ""
-            row = conn.execute(
-                f"SELECT {self._select_columns(conn)} FROM tenders WHERE id = ?"
-                f"{active_filter}",
+            row = self._exec(
+                conn,
+                f"SELECT {self._select_columns(conn)} FROM tenders WHERE id = ?{active_filter}",
                 (tender_id,),
             ).fetchone()
         return dict(row) if row else None
@@ -196,7 +230,7 @@ class ReadOnlyTenderRepository:
         with self._connect() as conn:
             predicate = self._active_predicate(conn)
             where = f" WHERE {predicate}" if predicate else ""
-            rows = conn.execute(f"SELECT {columns} FROM tenders{where}").fetchall()
+            rows = self._exec(conn, f"SELECT {columns} FROM tenders{where}").fetchall()
         return [dict(row) for row in rows]
 
     def summary(self, today: date) -> dict:
@@ -236,16 +270,15 @@ class ReadOnlyTenderRepository:
             predicate = self._active_predicate(conn)
             where = f" WHERE {predicate}" if predicate else ""
             total = int(
-                conn.execute(f"SELECT COUNT(*) AS n FROM tenders{where}").fetchone()[
-                    "n"
-                ]
+                self._exec(conn, f"SELECT COUNT(*) AS n FROM tenders{where}").fetchone()["n"]
             )
             conditions = [predicate] if predicate else []
             conditions.append("wilaya IS NOT NULL AND wilaya != ''")
-            rows = conn.execute(
+            rows = self._exec(
+                conn,
                 "SELECT wilaya, COUNT(*) AS n FROM tenders"
                 f" WHERE {' AND '.join(conditions)}"
-                " GROUP BY wilaya ORDER BY n DESC, wilaya ASC"
+                " GROUP BY wilaya ORDER BY n DESC, wilaya ASC",
             ).fetchall()
         return [
             {
@@ -271,7 +304,8 @@ class ReadOnlyTenderRepository:
             predicate = self._active_predicate(conn)
             conditions = [predicate] if predicate else []
             conditions.append("substr(first_seen, 1, 10) >= ?")
-            rows = conn.execute(
+            rows = self._exec(
+                conn,
                 "SELECT substr(first_seen, 1, 10) AS day, COUNT(*) AS n FROM tenders"
                 f" WHERE {' AND '.join(conditions)} GROUP BY day",
                 (start.isoformat(),),

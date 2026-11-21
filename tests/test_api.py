@@ -2,7 +2,6 @@
 
 import hashlib
 import sqlite3
-import psycopg2
 from datetime import date
 
 import pytest
@@ -217,9 +216,7 @@ def test_pagination_slicing_and_bounds(client):
     page2 = client.get("/api/tenders", params={"page": 2, "page_size": 2}).json()
     assert page1["pages"] == 2 and len(page1["items"]) == 2
     assert len(page2["items"]) == 2
-    assert {i["id"] for i in page1["items"]}.isdisjoint(
-        {i["id"] for i in page2["items"]}
-    )
+    assert {i["id"] for i in page1["items"]}.isdisjoint({i["id"] for i in page2["items"]})
     beyond = client.get("/api/tenders", params={"page": 99, "page_size": 2}).json()
     assert beyond["items"] == [] and beyond["total"] == 4
 
@@ -353,9 +350,7 @@ def test_cors_allows_configured_origin_without_credentials(tmp_path):
         today_provider=lambda: TODAY,
     )
     cors_client = TestClient(app, raise_server_exceptions=False)
-    allowed = cors_client.get(
-        "/api/tenders", headers={"Origin": "https://dashboard.example"}
-    )
+    allowed = cors_client.get("/api/tenders", headers={"Origin": "https://dashboard.example"})
     assert allowed.headers["access-control-allow-origin"] == "https://dashboard.example"
     assert "access-control-allow-credentials" not in allowed.headers
     denied = cors_client.get("/api/tenders", headers={"Origin": "https://evil.example"})
@@ -484,3 +479,51 @@ def test_api_returns_saved_reference_and_source(tmp_path):
     assert response.status_code == 200
     assert response.json()["reference"] == "ADE/2026/4"
     assert response.json()["source"] == "ade.gov.dz"
+
+
+# --- PostgreSQL placeholder translation (no real database needed) ---------
+
+
+class _FakePgConn:
+    """Minimal stand-in exposing the ``conn`` attribute db_wrapper uses."""
+
+    conn = object()
+
+    def __init__(self):
+        self.calls = []
+
+    def execute(self, sql, params=None):
+        self.calls.append((sql, params))
+        return self
+
+
+def test_postgres_exec_translates_placeholders_and_escapes_percent():
+    from api.repository import ReadOnlyTenderRepository
+
+    conn = _FakePgConn()
+    ReadOnlyTenderRepository._exec(
+        conn,
+        "SELECT 1 WHERE link NOT LIKE 'https://news.google.com/%' AND wilaya = ?",
+        ["الجزائر"],
+    )
+    sql, params = conn.calls[0]
+    assert "%%'" in sql and "= %s" in sql and "?" not in sql
+    assert params == ["الجزائر"]
+
+
+def test_postgres_exec_without_params_keeps_literal_percent():
+    from api.repository import ReadOnlyTenderRepository
+
+    conn = _FakePgConn()
+    ReadOnlyTenderRepository._exec(conn, "SELECT 'a%' AS x")
+    assert conn.calls[0] == ("SELECT 'a%' AS x", None)
+
+
+def test_list_endpoint_excludes_google_news_rows(client):
+    # Regression: _active_predicate/_select_columns previously raised
+    # NameError (undefined ``columns``), turning every listing into a 500.
+    response = client.get("/api/tenders")
+    assert response.status_code == 200
+    assert all(
+        "news.google.com" not in (item["sourceUrl"] or "") for item in response.json()["items"]
+    )
