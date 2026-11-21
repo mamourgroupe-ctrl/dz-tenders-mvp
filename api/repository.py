@@ -80,11 +80,18 @@ class ReadOnlyTenderRepository:
             conn = get_db_connection(f"{path.resolve().as_uri()}?mode=ro", uri=True)
         except Exception as exc:
             raise DatabaseUnavailableError("tender database is not readable") from exc
+
         try:
-        pass
-    except Exception as exc:
+            if hasattr(conn, 'conn'):
+                cursor = conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'tenders'")
+                columns = {row['column_name'] for row in cursor.fetchall()}
+            else:
+                cursor = conn.execute("PRAGMA table_info(tenders)")
+                columns = {row['name'] for row in cursor.fetchall()}
+        except Exception as exc:
             conn.close()
             raise DatabaseUnavailableError("tender database is not readable") from exc
+
         if not REQUIRED_COLUMNS.issubset(columns):
             conn.close()
             raise DatabaseUnavailableError("tender database schema is not initialized")
