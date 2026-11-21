@@ -91,3 +91,4 @@ PowerShell/
 *.sqlite
 *.sqlite3
 storage/
+.neon
